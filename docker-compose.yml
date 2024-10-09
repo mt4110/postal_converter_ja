@@ -1,0 +1,104 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./worker/api/Dockerfile
+    container_name: postal_api
+    ports:
+      - "3201:3201"
+    networks:
+      custom_network:
+        ipv4_address: 172.20.0.1
+    depends_on:
+      - mysql
+      - postgres
+      - sqlite
+
+  crawler:
+    build:
+      context: .
+      dockerfile: ./worker/crawler/Dockerfile
+    container_name: postal_crawler
+    ports:
+      - "3202:3202"
+    networks:
+      custom_network:
+        ipv4_address: 172.20.0.2
+    depends_on:
+      - mysql
+      - postgres
+      - sqlite
+
+  frontend:
+    build:
+      context: ./sample/frontend
+      dockerfile: ./sample/frontend/Dockerfile
+    container_name: postal_frontend
+    ports:
+      - "3203:3203"
+    networks:
+      custom_network:
+        ipv4_address: 172.20.0.3
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql_container
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql_root
+      MYSQL_DATABASE: zip_code_db
+      MYSQL_USER: mysql_user
+      MYSQL_PASSWORD: u_password
+    ports:
+      - "3204:3204"
+    networks:
+      custom_network:
+        ipv4_address: 172.20.0.4
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: zip_code_db
+    ports:
+      - "3205:3205"
+    networks:
+      custom_network:
+        ipv4_address: 172.20.0.5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  sqlite:
+    image: nouchka/sqlite3
+    container_name: sqlite_container
+    volumes:
+      - sqlite_data:/data
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+volumes:
+  mysql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./storage/mysql
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./storage/postgres
+  sqlite_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./storage/sqlite
