@@ -1,0 +1,13 @@
+[package]
+name = "api_service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.7"
+common = { path = "../common" }
+
+
+[[bin]]
+name = "api"
+path = "src/main.rs"
