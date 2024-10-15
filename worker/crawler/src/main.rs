@@ -1,15 +1,8 @@
 mod constants;
-use constants::temp_dir;
+mod db;
+mod file;
 
-// Declare the submodule `file` and the files inside it
-mod file {
-    pub mod download;
-    pub mod unfreeze;
-    pub mod parse {
-        pub mod csv;
-        pub mod json;
-    }
-}
+use constants::temp_dir;
 
 #[tokio::main]
 async fn main() {
@@ -39,8 +32,50 @@ async fn main() {
         eprintln!("Failed to unzip: {:?}", e);
         return;
     }
+    // potal code csv file format
+    let csv_map = match file::parse::csv::csv_stream_format(&out_file_path, false).await {
+        Ok(data) => data,
+        Err(e) => {
+            eprintln!("Error reading CSV file: {:?}", e);
+            return;
+        }
+    };
 
-    // file parse & formatted
-    let csv_map = file::parse::csv::csv_stream_format(&out_file_path, false).await;
-    println!("{:?}", csv_map);
+    // MySQL接続とエラーチェック
+    let mut mysql_pool = match db::connection::mysql_connection().await {
+        Ok(pool) => {
+            println!("MySQL connected");
+            pool
+        }
+        Err(e) => {
+            eprintln!("Error connecting to MySQL: {:?}", e);
+            return;
+        }
+    };
+
+    // PostgreSQL接続とエラーチェック
+    let mut postgres_pool = match db::connection::postgres_connection().await {
+        Ok(pool) => {
+            println!("PostgreSQL connected");
+            pool
+        }
+        Err(e) => {
+            eprintln!("Error connecting to PostgreSQL: {:?}", e);
+            return;
+        }
+    };
+
+    // MySQLへのデータ挿入とエラーチェック
+    if let Err(e) = db::insert_postal_code_mysql::bulk_insert(&mysql_pool, &csv_map).await {
+        eprintln!("Error inserting data into MySQL: {:?}", e);
+    } else {
+        println!("Data inserted into MySQL successfully.");
+    }
+
+    // PostgreSQLへのデータ挿入とエラーチェック
+    if let Err(e) = db::insert_postal_code_postgres::bulk_insert(&postgres_pool, &csv_map).await {
+        eprintln!("Error inserting data into PostgreSQL: {:?}", e);
+    } else {
+        println!("Data inserted into PostgreSQL successfully.");
+    }
 }

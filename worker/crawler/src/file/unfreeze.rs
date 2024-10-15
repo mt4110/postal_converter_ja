@@ -7,7 +7,7 @@ pub fn unzip(input_path: &str, output_path: &str) -> std::io::Result<()> {
     let file = File::open(input_path)?;
     let mut archive = ZipArchive::new(file)?;
 
-    if archive.len() == 0 {
+    if archive.is_empty() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "No files in ZIP archive",
@@ -21,5 +21,6 @@ pub fn unzip(input_path: &str, output_path: &str) -> std::io::Result<()> {
     // ZIPファイルの内容をコピー
     std::io::copy(&mut zip_file, &mut writer)?;
     writer.flush()?;
+    println!("Unzip completed.");
     Ok(())
 }
