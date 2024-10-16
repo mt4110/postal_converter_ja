@@ -1,15 +1,4 @@
-// use std::{fs, path::PathBuf};
-
-// // Returns the absolute path for the given relative path
-// fn get_absolute_path(path: &str) -> PathBuf {
-//     fs::canonicalize(path).expect("Failed to get absolute path")
-// }
-
-// // Function to return the absolute path for TEMP_DIR
-// pub fn temp_dir() -> PathBuf {
-//     get_absolute_path("file/temp_assets")
-// }
-
+use serde::Deserialize;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -31,4 +20,13 @@ pub fn temp_dir() -> PathBuf {
 // pref json
 pub fn common_path() -> PathBuf {
     get_absolute_path("../common")
+}
+// When the amount of data to be handled increases, create a models directory and migrate it.
+#[derive(Debug, Deserialize, Clone)]
+pub struct PostalCode {
+    pub zip_code: String,
+    pub prefecture_id: i16,
+    pub prefecture: String,
+    pub city: String,
+    pub town: Option<String>,
 }
