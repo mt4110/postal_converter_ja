@@ -1,6 +1,21 @@
 {
   "rust-analyzer.linkedProjects": ["worker/Cargo.toml"],
-  "cSpell.words": ["tailwindcss"],
+  "rust-analyzer.checkOnSave.command": "clippy",
+  "cSpell.words": [
+    "canonicalize",
+    "deadpool",
+    "deque",
+    "keepalive",
+    "reqwest",
+    "sqlx",
+    "tailwindcss"
+  ],
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  }
 }

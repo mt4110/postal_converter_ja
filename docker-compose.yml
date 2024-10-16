@@ -12,7 +12,7 @@ services:
     depends_on:
       - mysql
       - postgres
-      - sqlite
+      - crawler
 
   crawler:
     build:
@@ -27,18 +27,17 @@ services:
     depends_on:
       - mysql
       - postgres
-      - sqlite
 
-  frontend:
-    build:
-      context: ./sample/frontend
-      dockerfile: ./sample/frontend/Dockerfile
-    container_name: postal_frontend
-    ports:
-      - "3203:3203"
-    networks:
-      custom_network:
-        ipv4_address: 172.20.0.3
+  # frontend:
+  #   build:
+  #     context: ./sample/frontend
+  #     dockerfile: ./sample/frontend/Dockerfile
+  #   container_name: postal_frontend
+  #   ports:
+  #     - "3203:3203"
+  #   networks:
+  #     custom_network:
+  #       ipv4_address: 172.20.0.3
 
   mysql:
     image: mysql:latest
@@ -48,13 +47,16 @@ services:
       MYSQL_DATABASE: zip_code_db
       MYSQL_USER: mysql_user
       MYSQL_PASSWORD: u_password
+      TZ: Asia/Tokyo
     ports:
-      - "3204:3204"
+      - "3204:3306"
     networks:
       custom_network:
         ipv4_address: 172.20.0.4
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./storage/mysql/init-mysql.sql:/docker-entrypoint-initdb.d/init-mysql.sql:ro
+      - ./storage/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
 
   postgres:
     image: postgres:latest
@@ -63,19 +65,15 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres_password
       POSTGRES_DB: zip_code_db
+      TZ: Asia/Tokyo
     ports:
-      - "3205:3205"
+      - "3205:5432"
     networks:
       custom_network:
         ipv4_address: 172.20.0.5
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-  sqlite:
-    image: nouchka/sqlite3
-    container_name: sqlite_container
-    volumes:
-      - sqlite_data:/data
+      - ./storage/postgres/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
 
 networks:
   custom_network:
@@ -89,16 +87,10 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ./storage/mysql
+      device: ./storage/mysql/mysql_data
   postgres_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./storage/postgres
-  sqlite_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./storage/sqlite
+      device: ./storage/postgres/postgres_data

@@ -1,0 +1,6 @@
+DS_Store
+mysql/mysql_data/*
+postgres/postgres_data/*
+redis/*
+mongodb/*
+sqlite/*
