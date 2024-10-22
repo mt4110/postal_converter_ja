@@ -4,8 +4,6 @@ target/*
 target*
 worker/crawler/file/temp_assets/*
 file/temp_assets/*
-.env/*
-.env*
 .env.keys*
 *.zip
 *.gzip
