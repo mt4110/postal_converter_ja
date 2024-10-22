@@ -7,7 +7,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fs::File;
 use std::io::BufReader;
 
-// 大文字をあらかじめにキャッシュ・マップに登録
+// Register uppercase letters in advance in the cache map
 fn build_replace_cache() -> HashMap<char, &'static str> {
     let mut map = HashMap::new();
     map.insert('（', "(");
@@ -111,7 +111,7 @@ pub async fn csv_stream_format(
                     format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
                 records_vec.push(formatted_record);
             }
-            Err(e) => eprintln!("Error processing record: {:?}", e), // レコードのエラーを表示してスキップ
+            Err(e) => eprintln!("Error processing record: {:?}", e),
         }
     }
     Ok(records_vec)

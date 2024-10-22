@@ -1,7 +1,7 @@
 mod constants;
 mod db;
 mod file;
-
+mod utils;
 use constants::temp_dir;
 
 #[tokio::main]
@@ -17,7 +17,7 @@ async fn main() {
     let out_file_path = format!("{}/{}", temp_dir().to_str().unwrap(), "utf_ken_all.csv");
 
     // file download
-    println!("{}", &zip_code_url);
+    tlog!("{}", &zip_code_url);
 
     if let Err(e) =
         file::download::fetch_stream(&tmp_path_name, &in_optimize_file_path_name, &zip_code_url)
@@ -32,7 +32,7 @@ async fn main() {
         eprintln!("Failed to unzip: {:?}", e);
         return;
     }
-    // potal code csv file format
+    // postal code csv file format
     let csv_map = match file::parse::csv::csv_stream_format(&out_file_path, false).await {
         Ok(data) => data,
         Err(e) => {
@@ -41,8 +41,8 @@ async fn main() {
         }
     };
 
-    // MySQL接続とエラーチェック
-    let mut mysql_pool = match db::connection::mysql_connection().await {
+    // MySQL connection and error check
+    let mysql_pool = match db::connection::mysql_connection().await {
         Ok(pool) => {
             println!("MySQL connected");
             pool
@@ -53,10 +53,10 @@ async fn main() {
         }
     };
 
-    // PostgreSQL接続とエラーチェック
-    let mut postgres_pool = match db::connection::postgres_connection().await {
+    // PostgreSQL connection and error check
+    let postgres_pool = match db::connection::postgres_connection().await {
         Ok(pool) => {
-            println!("PostgreSQL connected");
+            tlog!("PostgreSQL connected");
             pool
         }
         Err(e) => {
@@ -65,17 +65,19 @@ async fn main() {
         }
     };
 
-    // MySQLへのデータ挿入とエラーチェック
+    // Mysql insert data and error check
     if let Err(e) = db::insert_postal_code_mysql::bulk_insert(&mysql_pool, &csv_map).await {
         eprintln!("Error inserting data into MySQL: {:?}", e);
     } else {
-        println!("Data inserted into MySQL successfully.");
+        tlog!("Data inserted into MySQL successfully.");
     }
 
-    // PostgreSQLへのデータ挿入とエラーチェック
-    if let Err(e) = db::insert_postal_code_postgres::bulk_insert(&postgres_pool, &csv_map).await {
+    // PostgreSQL insert data and error check
+    if let Err(e) =
+        db::insert_postal_code_postgres::bulk_insert_async(&postgres_pool, &csv_map).await
+    {
         eprintln!("Error inserting data into PostgreSQL: {:?}", e);
     } else {
-        println!("Data inserted into PostgreSQL successfully.");
+        tlog!("Data inserted into PostgreSQL successfully.");
     }
 }

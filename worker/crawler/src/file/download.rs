@@ -20,9 +20,8 @@ async fn fetch_url(target_url: &str, tmp_path: &str) -> io::Result<()> {
                     break;
                 }
             };
-            println!("Chunk size: {}", chunk.len());
+            // println!("Chunk size: {}", chunk.len());
             file.write_all(&chunk).await?;
-            println!("Chunk written to file.");
         }
 
         println!("Download completed.");
@@ -54,7 +53,8 @@ async fn process_large_file(tmp_path: &str, output_path: &str) -> io::Result<()>
             println!(" reader read finish");
             break;
         } else {
-            println!(" {} bytes read from file", n); // 読み込んだバイト数を表示
+            // Display the number of bytes read
+            // println!(" {} bytes read from file", n);
         }
 
         writer.write_all(&buffer[..n]).await?; // 書き込む
