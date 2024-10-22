@@ -3,12 +3,15 @@
   "rust-analyzer.checkOnSave.command": "clippy",
   "cSpell.words": [
     "canonicalize",
+    "chrono",
+    "cpus",
     "deadpool",
     "deque",
     "keepalive",
     "reqwest",
     "sqlx",
-    "tailwindcss"
+    "tailwindcss",
+    "tlog"
   ],
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
