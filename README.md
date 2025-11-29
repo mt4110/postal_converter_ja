@@ -1,6 +1,6 @@
 # 郵便番号自動最新化システム (Postal Converter JA)
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
 English README: [ENGLISH_README.md](./docs/ENGLISH_README.md)
