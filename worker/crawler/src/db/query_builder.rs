@@ -17,7 +17,7 @@ pub fn build_pg_bulk_insert_query<'a>(
     let mut placeholders = Vec::new();
 
     let row_len = data[0].len(); // Assuming all rows have same length
-    
+
     for (i, row) in data.iter().enumerate() {
         let mut row_placeholders: Vec<String> = Vec::new();
         // For regular columns
@@ -26,7 +26,7 @@ pub fn build_pg_bulk_insert_query<'a>(
         }
         // For updated_at (shared timestamp)
         row_placeholders.push(format!("'{}'::TIMESTAMP", timestamp_literal));
-        
+
         placeholders.push(format!("({})", row_placeholders.join(", ")));
         all_params.extend(row.iter());
     }

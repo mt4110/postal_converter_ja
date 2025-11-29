@@ -1,6 +1,6 @@
 use crate::constants::common_path;
-use common::models::PostalCode;
 use crate::file;
+use common::models::PostalCode;
 use csv_async::AsyncReaderBuilder;
 use futures::stream::StreamExt;
 use std::collections::{HashMap, VecDeque};
@@ -37,7 +37,7 @@ fn format_csv_record_with_cache(
     pref_cache: &HashMap<String, String>,
     replace_cache: &HashMap<char, &str>,
 ) -> PostalCode {
-    let city_id = record.get(0).cloned().unwrap_or_else(|| "".to_string());
+    let city_id = record.front().cloned().unwrap_or_else(|| "".to_string());
     let zip_code = record.get(2).cloned().unwrap_or_else(|| "".to_string());
     let prefecture = record.get(6).map_or_else(
         || "".to_string(),
@@ -45,7 +45,7 @@ fn format_csv_record_with_cache(
     );
     let prefecture_id = pref_cache
         .get(&prefecture)
-            .and_then(|s| s.parse::<i32>().ok())
+        .and_then(|s| s.parse::<i32>().ok())
         .unwrap_or(0);
     let city = record.get(7).map_or_else(
         || "".to_string(),

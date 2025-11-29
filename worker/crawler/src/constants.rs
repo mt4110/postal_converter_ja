@@ -1,4 +1,3 @@
-
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -23,4 +22,3 @@ pub fn common_path() -> PathBuf {
     get_absolute_path("../common")
 }
 // When the amount of data to be handled increases, create a models directory and migrate it.
-
