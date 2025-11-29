@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Maintain GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Maintain Rust dependencies
+  - package-ecosystem: "cargo"
+    directory: "/worker/crawler"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "cargo"
+    directory: "/worker/api"
+    schedule:
+      interval: "weekly"
+
+  # Maintain Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+
+  # Maintain Go dependencies (Launcher)
+  - package-ecosystem: "gomod"
+    directory: "/launcher"
+    schedule:
+      interval: "weekly"
