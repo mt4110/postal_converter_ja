@@ -33,13 +33,13 @@ fn replace_japanese_to_alphanumeric_with_cache(s: &str, cache: &HashMap<char, &s
 
 fn remove_parentheses(s: &str) -> String {
     let mut result = String::new();
-    let mut in_parens = false;
+    let mut depth = 0;
     for c in s.chars() {
         if c == '(' {
-            in_parens = true;
+            depth += 1;
         } else if c == ')' {
-            in_parens = false;
-        } else if !in_parens {
+            depth = std::cmp::max(0, depth - 1);
+        } else if depth == 0 {
             result.push(c);
         }
     }
@@ -72,22 +72,15 @@ fn format_csv_record_with_cache(
         .unwrap_or_default();
 
     // Remove parentheses content (e.g., "銀座(1丁目)" -> "銀座")
+    // Note: Full-width parentheses '（）' are already converted to half-width '()'
+    // by replace_japanese_to_alphanumeric_with_cache above.
     let town = remove_parentheses(&raw_town);
 
     // Column 9 indicates if one zip code represents multiple town areas (1 = yes, 0 = no)
     // If 0, it means the zip code corresponds to a single town area (which might be split across lines)
     // If 1, it means the zip code covers multiple distinct towns, so we should NOT merge them.
     let multi_town_in_zip = record
-        .get(8) // Index 8 is actually town name, wait. CSV index is 0-based.
-        // 0: JIS code, 1: old zip, 2: zip, 3: pref kana, 4: city kana, 5: town kana
-        // 6: pref, 7: city, 8: town
-        // 9: multi-town flag (1=yes, 0=no)
-        // 10: koaza flag
-        // 11: chome flag
-        // 12: multi-zip for one town flag
-        // 13: update status
-        // 14: update reason
-        .and_then(|_| record.get(9)) // Access Index 9 correctly
+        .get(9) // Access Index 9 directly (multi-town flag: 1=yes, 0=no)
         .map(|s| s == "1")
         .unwrap_or(false);
 
