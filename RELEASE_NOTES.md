@@ -1,4 +1,4 @@
-# v0.2.0 (Beta) - Launcher UX & CI Integration 🚀
+# v0.2.0 (Beta) - Enhanced Developer Experience & Robustness 🚀
 
 ## 概要
 

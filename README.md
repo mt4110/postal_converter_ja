@@ -207,7 +207,18 @@ yarn dev
 
 ## バージョン
 
-**v0.2.0 (Beta)** - Launcher UX Update & CI Integration
+**v0.2.0 (Beta)** - Enhanced Developer Experience & Robustness
+
+## 貢献について (Contributing)
+
+Postal Converter JA はオープンソースプロジェクトであり、皆様からの貢献を歓迎します！
+バグ報告、機能追加、ドキュメント改善など、どんな形でも構いません。
+
+詳細なガイドラインについては、[CONTRIBUTING.md](CONTRIBUTING.md) をご覧ください。
+また、コミュニティの行動規範として [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) を定めています。
+
+> [!NOTE]
+> 依存関係の更新は **Dependabot** によって毎週（Weekly）自動的にチェックされ、PR が作成されます。
 
 ## スポンサー募集
 
