@@ -31,6 +31,21 @@ fn replace_japanese_to_alphanumeric_with_cache(s: &str, cache: &HashMap<char, &s
         .collect()
 }
 
+fn remove_parentheses(s: &str) -> String {
+    let mut result = String::new();
+    let mut depth = 0;
+    for c in s.chars() {
+        if c == '(' {
+            depth += 1;
+        } else if c == ')' {
+            depth = std::cmp::max(0, depth - 1);
+        } else if depth == 0 {
+            result.push(c);
+        }
+    }
+    result
+}
+
 //  Format CSV file records
 fn format_csv_record_with_cache(
     record: VecDeque<String>,
@@ -51,13 +66,23 @@ fn format_csv_record_with_cache(
         || "".to_string(),
         |s| replace_japanese_to_alphanumeric_with_cache(s, replace_cache),
     );
-    let town = record
+    let raw_town = record
         .get(8)
         .map(|s| replace_japanese_to_alphanumeric_with_cache(s, replace_cache))
         .unwrap_or_default();
 
-    // Column 12 indicates if the address is split across multiple lines (1 = split, 0 = not split)
-    let is_split = record.get(12).map(|s| s == "1").unwrap_or(false);
+    // Remove parentheses content (e.g., "銀座(1丁目)" -> "銀座")
+    // Note: Full-width parentheses '（）' are already converted to half-width '()'
+    // by replace_japanese_to_alphanumeric_with_cache above.
+    let town = remove_parentheses(&raw_town);
+
+    // Column 9 indicates if one zip code represents multiple town areas (1 = yes, 0 = no)
+    // If 0, it means the zip code corresponds to a single town area (which might be split across lines)
+    // If 1, it means the zip code covers multiple distinct towns, so we should NOT merge them.
+    let multi_town_in_zip = record
+        .get(9) // Access Index 9 directly (multi-town flag: 1=yes, 0=no)
+        .map(|s| s == "1")
+        .unwrap_or(false);
 
     (
         PostalCode {
@@ -72,7 +97,7 @@ fn format_csv_record_with_cache(
                 town
             },
         },
-        is_split,
+        multi_town_in_zip,
     )
 }
 
@@ -113,35 +138,37 @@ pub async fn csv_stream_format(
     let mut records_vec: Vec<PostalCode> = Vec::new();
     let mut records = csv_reader.into_records();
     let mut prev_record: Option<PostalCode> = None;
-    let mut prev_was_split = false;
+    let mut prev_multi_town_in_zip = false;
 
     while let Some(result) = records.next().await {
         match result {
             Ok(record) => {
                 let deque: VecDeque<String> = record.iter().map(|s| s.to_string()).collect();
-                let (current, is_split) =
+                let (current, multi_town_in_zip) =
                     format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
 
                 if let Some(ref mut prev) = prev_record {
-                    // Merge ONLY if both previous and current records are flagged as split
-                    // AND they share the same key (Zip + City)
-                    if prev_was_split
-                        && is_split
-                        && prev.zip_code == current.zip_code
+                    // Merge logic:
+                    // 1. Same Zip Code and City ID
+                    // 2. AND 'multi_town_in_zip' flag is 0 for BOTH records (Index 9)
+                    //    If flag is 1, it means multiple distinct towns share the zip, so NO merge.
+                    //    If flag is 0, it implies a single town entity, so split lines should be merged.
+                    if prev.zip_code == current.zip_code
                         && prev.city_id == current.city_id
+                        && !prev_multi_town_in_zip
+                        && !multi_town_in_zip
                     {
                         prev.town.push_str(&current.town);
-                        // Continue to next record, keeping 'prev' as the accumulator
-                        // 'prev_was_split' remains true (or we could update it to is_split, which is true)
+                        // Continue to next record, keeping 'prev' as accumulator
                         continue;
                     } else {
-                        // Not a continuation, push the previous record
+                        // Different record or distinct towns, push previous
                         records_vec.push(prev.clone());
                     }
                 }
-                // Update prev_record to current
+                // Update prev_record
                 prev_record = Some(current);
-                prev_was_split = is_split;
+                prev_multi_town_in_zip = multi_town_in_zip;
             }
             Err(e) => eprintln!("Error processing record: {:?}", e),
         }
