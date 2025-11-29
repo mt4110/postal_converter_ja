@@ -1,3 +1,11 @@
+---
+name: Pull Request (English)
+about: Create a pull request in English
+title: ""
+labels: ""
+assignees: ""
+---
+
 ## Description
 
 Please include a summary of the change and which issue is fixed.
