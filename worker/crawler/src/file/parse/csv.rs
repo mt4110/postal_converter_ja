@@ -105,21 +105,38 @@ pub async fn csv_stream_format(
     let replace_cache = build_replace_cache();
 
     let mut records_vec: Vec<PostalCode> = Vec::new();
-    let mut seen = std::collections::HashSet::new();
     let mut records = csv_reader.into_records();
+    let mut prev_record: Option<PostalCode> = None;
 
     while let Some(result) = records.next().await {
         match result {
             Ok(record) => {
                 let deque: VecDeque<String> = record.iter().map(|s| s.to_string()).collect();
-                let formatted_record =
-                    format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
-                if seen.insert(formatted_record.clone()) {
-                    records_vec.push(formatted_record);
+                let current = format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
+
+                if let Some(ref mut prev) = prev_record {
+                    // Check if it's a continuation of the previous record
+                    // Same zip_code and city_id means the town name is split across lines
+                    if prev.zip_code == current.zip_code && prev.city_id == current.city_id {
+                        prev.town.push_str(&current.town);
+                        // Continue to the next record without pushing 'prev' yet
+                        continue;
+                    } else {
+                        // Different record, so push the previous one
+                        records_vec.push(prev.clone());
+                    }
                 }
+                // Update prev_record to the current one
+                prev_record = Some(current);
             }
             Err(e) => eprintln!("Error processing record: {:?}", e),
         }
     }
+
+    // Push the last record if exists
+    if let Some(last) = prev_record {
+        records_vec.push(last);
+    }
+
     Ok(records_vec)
 }
