@@ -1,45 +1,18 @@
 services:
-  api:
-    build:
-      context: .
-      dockerfile: ./worker/api/Dockerfile
-    container_name: postal_api
-    ports:
-      - "3201:3201"
-    networks:
-      custom_network:
-        ipv4_address: 172.20.0.1
-    depends_on:
-      - mysql
-      - postgres
-      - sqlite
+  # API Service: Provides RESTful endpoints for postal code data
 
-  crawler:
-    build:
-      context: .
-      dockerfile: ./worker/crawler/Dockerfile
-    container_name: postal_crawler
-    ports:
-      - "3202:3202"
-    networks:
-      custom_network:
-        ipv4_address: 172.20.0.2
-    depends_on:
-      - mysql
-      - postgres
-      - sqlite
+  # frontend:
+  #   build:
+  #     context: ./sample/frontend
+  #     dockerfile: ./sample/frontend/Dockerfile
+  #   container_name: postal_frontend
+  #   ports:
+  #     - "3203:3203"
+  #   networks:
+  #     custom_network:
+  #       ipv4_address: 172.20.0.3
 
-  frontend:
-    build:
-      context: ./sample/frontend
-      dockerfile: ./sample/frontend/Dockerfile
-    container_name: postal_frontend
-    ports:
-      - "3203:3203"
-    networks:
-      custom_network:
-        ipv4_address: 172.20.0.3
-
+  # MySQL Database: Stores postal code data (Primary storage)
   mysql:
     image: mysql:latest
     container_name: mysql_container
@@ -48,14 +21,16 @@ services:
       MYSQL_DATABASE: zip_code_db
       MYSQL_USER: mysql_user
       MYSQL_PASSWORD: u_password
+      TZ: Asia/Tokyo
     ports:
-      - "3204:3204"
-    networks:
-      custom_network:
-        ipv4_address: 172.20.0.4
+      - "3204:3306"
+
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./storage/mysql/init-mysql.sql:/docker-entrypoint-initdb.d/init-mysql.sql:ro
+      - ./storage/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
 
+  # PostgreSQL Database: Stores postal code data (Alternative/Secondary storage)
   postgres:
     image: postgres:latest
     container_name: postgres_container
@@ -63,42 +38,24 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres_password
       POSTGRES_DB: zip_code_db
+      TZ: Asia/Tokyo
     ports:
-      - "3205:3205"
-    networks:
-      custom_network:
-        ipv4_address: 172.20.0.5
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "3205:5432"
 
-  sqlite:
-    image: nouchka/sqlite3
-    container_name: sqlite_container
     volumes:
-      - sqlite_data:/data
+      - postgres_data:/var/lib/postgresql
+      - ./storage/postgres/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
 
-networks:
-  custom_network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 volumes:
   mysql_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./storage/mysql
+      device: ./storage/mysql/mysql_data
   postgres_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ./storage/postgres
-  sqlite_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./storage/sqlite
+      device: ./storage/postgres/postgres_data

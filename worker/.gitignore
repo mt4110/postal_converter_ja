@@ -1,10 +1,12 @@
+.DS_Store
+DS_Store
 target/*
 target*
 worker/crawler/file/temp_assets/*
 file/temp_assets/*
-.env/*
-.env*
-.DS_Store
+file/temp_assets/
+.env.keys*
+*.csv
 *.zip
 *.gzip
 *.tar

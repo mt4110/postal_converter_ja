@@ -1,14 +1,3 @@
-// use std::{fs, path::PathBuf};
-
-// // Returns the absolute path for the given relative path
-// fn get_absolute_path(path: &str) -> PathBuf {
-//     fs::canonicalize(path).expect("Failed to get absolute path")
-// }
-
-// // Function to return the absolute path for TEMP_DIR
-// pub fn temp_dir() -> PathBuf {
-//     get_absolute_path("file/temp_assets")
-// }
 
 use std::{
     fs,
@@ -25,10 +14,13 @@ fn get_absolute_path(path: &str) -> PathBuf {
 }
 
 // Function to return the absolute path for TEMP_DIR
+// Function to return the absolute path for TEMP_DIR
 pub fn temp_dir() -> PathBuf {
-    get_absolute_path("../file/temp_assets")
+    get_absolute_path("temp_assets")
 }
 // pref json
 pub fn common_path() -> PathBuf {
     get_absolute_path("../common")
 }
+// When the amount of data to be handled increases, create a models directory and migrate it.
+
