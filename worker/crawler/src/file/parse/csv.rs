@@ -179,5 +179,19 @@ pub async fn csv_stream_format(
         records_vec.push(last);
     }
 
+    // Deduplicate records based on Primary Key (zip_code, prefecture_id, city, town)
+    // to prevent "ON CONFLICT DO UPDATE command cannot affect row a second time" error.
+    // This error occurs when a single batch contains multiple records with the same PK.
+    let mut seen = std::collections::HashSet::new();
+    records_vec.retain(|r| {
+        let key = (
+            r.zip_code.clone(),
+            r.prefecture_id,
+            r.city.clone(),
+            r.town.clone(),
+        );
+        seen.insert(key)
+    });
+
     Ok(records_vec)
 }

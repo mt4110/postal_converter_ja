@@ -3,6 +3,8 @@
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
+English README: [ENGLISH_README.md](./docs/ENGLISH_README.md)
+
 このプロジェクトは、日本郵便のデータを自動的に取得・更新し、常に最新の郵便番号データを提供するシステムです。
 Rust 製のバックエンド（Crawler + API）と、Next.js 製のフロントエンドで構成されています。
 
@@ -30,20 +32,49 @@ Rust 製のバックエンド（Crawler + API）と、Next.js 製のフロント
 - **Nix**: 開発環境の構築に使用します（Rust ツールチェーン、ビルドツールなど）
 - **Docker**: データベースの実行に使用します
 - **Mise** (オプション): Node.js/Yarn のバージョン管理に使用（推奨）
+- **Nix**: 開発環境の構築に使用します（Rust ツールチェーン、ビルドツールなど）
+- **Docker**: データベースの実行に使用します
+- **Mise** (オプション): Node.js/Yarn のバージョン管理に使用（推奨）
 
 ### Nix のインストール
 
 まだ Nix をインストールしていない場合は、以下のコマンドでインストールしてください：
 
 ```bash
-# 公式インストールスクリプト（macOS/Linux）
+# 公式インストーラー
 sh <(curl -L https://nixos.org/nix/install)
 
-# または、Determinate Systems版（推奨）
+# または Determinate Systems インストーラー（推奨）
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 ```
 
-インストール後、シェルを再起動してください。
+---
+
+## 🚀 クイックスタート (Launcher)
+
+Go 製の CLI ランチャーを使って、簡単に環境を起動できます。
+
+```bash
+cd launcher
+go run main.go
+```
+
+または、ビルドして実行：
+
+```bash
+cd launcher
+go build -o postal-launcher
+./postal-launcher
+```
+
+ランチャーから以下の操作が可能です：
+
+- データベースの起動/停止 (Docker)
+- Crawler, API, Frontend の一括起動 (新しいターミナルで開きます)
+
+---
+
+## 🛠 手動セットアップ & 実行ール後、シェルを再起動してください。
 
 ## セットアップと実行
 
@@ -165,10 +196,18 @@ yarn dev
 
 ## ロードマップ (TODO)
 
-- [ ] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
+- [x] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
+- [x] **ランチャーの UX 改善**: 実行順序の制御と視覚的フィードバック
+- [ ] **環境構築の完全自動化**: Nix, Docker, Mise のインストールとセットアップ (`mise trust` 等)
+- [ ] **GCP デプロイ (v0.2.1)**: Cloud Run + Cloud SQL へのデプロイ構成
+- [ ] **IaC (Infrastructure as Code)**: Go 言語 (Pulumi/Terraform CDK) によるインフラ管理
 - [ ] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
 - [ ] **Docker イメージの軽量化**: マルチステージビルドの最適化
 - [ ] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
+
+## バージョン
+
+**v0.2.0 (Beta)** - Launcher UX Update & CI Integration
 
 ## スポンサー募集
 
