@@ -26,6 +26,7 @@
           pkg-config
           curl
           wget
+          go
         ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
           pkgs.libiconv
           pkgs.darwin.apple_sdk.frameworks.Security
