@@ -140,117 +140,13 @@ yarn dev
 
 ## トラブルシューティング
 
-### ポート競合エラー（Address already in use）
-
-API を起動時に以下のエラーが表示される場合があります：
-
-```
-called `Result::unwrap()` on an `Err` value: Os { code: 48, kind: AddrInUse, message: "Address already in use" }
-```
-
-これは既に別のプロセスがポート 3202 を使用している場合に発生します。以下の手順で解決してください：
-
-```bash
-# ポート3202を使用しているプロセスを特定
-lsof -i:3202
-
-# 出力例:
-# COMMAND   PID           USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
-# api     36659 masakitakemura   10u  IPv4 0x1e7f9d9246fd07f9      0t0  TCP *:intraintra (LISTEN)
-
-# プロセスを終了（PIDは実際の値に置き換えてください）
-kill -9 36659
-
-# APIを再起動
-cargo run --release
-```
-
-### データベース接続エラー
-
-Crawler や api が「Failed to connect to database」のようなエラーを出す場合：
-
-1. Docker コンテナが起動しているか確認：
-
-   ```bash
-   docker ps
-   ```
-
-2. コンテナが起動していない場合は起動：
-
-   ```bash
-   docker-compose up -d
-   ```
-
-3. `.env` ファイルのデータベース URL が正しいか確認
-
-### Nix 環境について
-
-Rust のコンパイルやビルドは、**必ず `nix develop` を実行してから**行ってください。
-Nix 環境に入らずに実行すると、依存関係やツールチェーンが見つからないエラーが発生します。
-
-## API エンドポイント
-
-### `GET /postal_codes/:zip_code`
-
-指定された郵便番号に対応する住所情報を返します。
-
-```json
-// GET /postal_codes/1000001
-[
-  {
-    "zip_code": "1000001",
-    "prefecture_id": 13,
-    "city_id": "13101",
-    "prefecture": "東京都",
-    "city": "千代田区",
-    "town": "千代田"
-  }
-]
-```
-
-### `GET /postal_codes/search?address=...`
-
-住所の一部から郵便番号を検索します。
-
-### `GET /postal_codes/prefectures`
-
-都道府県の一覧を返します。
-
-### `GET /postal_codes/cities?prefecture_id=...`
-
-指定された都道府県の市区町村一覧を返します。
+👉 **トラブルシューティングについてはこちら:** [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 
 ## 開発者向け情報
 
-### Lint & Format
+👉 **API ドキュメントはこちら:** [API_SPEC.md](./API_SPEC.md)
 
-- **Frontend**: `yarn lint` (ESLint 8 + Prettier)
-- **Backend**: `cargo fmt`, `cargo clippy`
-
-### ディレクトリ構成
-
-- `frontend/`: Next.js アプリケーション
-- `worker/api/`: Rust API サーバー
-- `worker/crawler/`: Rust データ更新クローラー
-- `worker/common/`: 共有 Rust モジュール (DB 接続, モデル定義)
-
-### データベースの切り替え
-
-環境変数 `DATABASE_TYPE` を設定することで、使用するデータベースを切り替えられます：
-
-```bash
-# .env ファイル（worker/crawler/.env と worker/api/.env）
-
-# PostgreSQLを使用（デフォルト）
-DATABASE_TYPE=postgres
-POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db
-
-# MySQLを使用
-DATABASE_TYPE=mysql
-MYSQL_DATABASE_URL=mysql://mysql_user:u_password@127.0.0.1:3204/zip_code_db
-```
-
-Crawler と API で同じ `DATABASE_TYPE` を設定してください。
+👉 **開発者向け情報についてはこちら:** [DEVELOPMENT.md](./docs/DEVELOPMENT.md)
 
 ## ライセンスと商用利用について
 
