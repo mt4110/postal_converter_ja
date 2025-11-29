@@ -36,7 +36,7 @@ fn format_csv_record_with_cache(
     record: VecDeque<String>,
     pref_cache: &HashMap<String, String>,
     replace_cache: &HashMap<char, &str>,
-) -> PostalCode {
+) -> (PostalCode, bool) {
     let city_id = record.front().cloned().unwrap_or_else(|| "".to_string());
     let zip_code = record.get(2).cloned().unwrap_or_else(|| "".to_string());
     let prefecture = record.get(6).map_or_else(
@@ -56,18 +56,24 @@ fn format_csv_record_with_cache(
         .map(|s| replace_japanese_to_alphanumeric_with_cache(s, replace_cache))
         .unwrap_or_default();
 
-    PostalCode {
-        zip_code,
-        prefecture_id,
-        city_id,
-        prefecture,
-        city,
-        town: if town == "以下に掲載がない場合" {
-            "".to_string()
-        } else {
-            town
+    // Column 12 indicates if the address is split across multiple lines (1 = split, 0 = not split)
+    let is_split = record.get(12).map(|s| s == "1").unwrap_or(false);
+
+    (
+        PostalCode {
+            zip_code,
+            prefecture_id,
+            city_id,
+            prefecture,
+            city,
+            town: if town == "以下に掲載がない場合" {
+                "".to_string()
+            } else {
+                town
+            },
         },
-    }
+        is_split,
+    )
 }
 
 // make prefecture cache
@@ -107,27 +113,35 @@ pub async fn csv_stream_format(
     let mut records_vec: Vec<PostalCode> = Vec::new();
     let mut records = csv_reader.into_records();
     let mut prev_record: Option<PostalCode> = None;
+    let mut prev_was_split = false;
 
     while let Some(result) = records.next().await {
         match result {
             Ok(record) => {
                 let deque: VecDeque<String> = record.iter().map(|s| s.to_string()).collect();
-                let current = format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
+                let (current, is_split) =
+                    format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
 
                 if let Some(ref mut prev) = prev_record {
-                    // Check if it's a continuation of the previous record
-                    // Same zip_code and city_id means the town name is split across lines
-                    if prev.zip_code == current.zip_code && prev.city_id == current.city_id {
+                    // Merge ONLY if both previous and current records are flagged as split
+                    // AND they share the same key (Zip + City)
+                    if prev_was_split
+                        && is_split
+                        && prev.zip_code == current.zip_code
+                        && prev.city_id == current.city_id
+                    {
                         prev.town.push_str(&current.town);
-                        // Continue to the next record without pushing 'prev' yet
+                        // Continue to next record, keeping 'prev' as the accumulator
+                        // 'prev_was_split' remains true (or we could update it to is_split, which is true)
                         continue;
                     } else {
-                        // Different record, so push the previous one
+                        // Not a continuation, push the previous record
                         records_vec.push(prev.clone());
                     }
                 }
-                // Update prev_record to the current one
+                // Update prev_record to current
                 prev_record = Some(current);
+                prev_was_split = is_split;
             }
             Err(e) => eprintln!("Error processing record: {:?}", e),
         }
