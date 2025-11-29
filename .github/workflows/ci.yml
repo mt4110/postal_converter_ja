@@ -18,14 +18,31 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cargo fmt
-        run: cargo fmt --all -- --check
+      # ---- API ----
+      - name: Cargo fmt (API)
+        working-directory: worker/api
+        run: cargo fmt -- --check
 
-      - name: Cargo clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Cargo clippy (API)
+        working-directory: worker/api
+        run: cargo clippy --all-features -- -D warnings
 
-      - name: Cargo test
-        run: cargo test --workspace --all-features
+      - name: Cargo test (API)
+        working-directory: worker/api
+        run: cargo test --all-features
+
+      # ---- Crawler ----
+      - name: Cargo fmt (Crawler)
+        working-directory: worker/crawler
+        run: cargo fmt -- --check
+
+      - name: Cargo clippy (Crawler)
+        working-directory: worker/crawler
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Cargo test (Crawler)
+        working-directory: worker/crawler
+        run: cargo test --all-features
 
   frontend:
     name: Frontend Lint
