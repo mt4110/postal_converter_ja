@@ -1,11 +1,9 @@
-use crate::constants::{common_path, PostalCode};
+use crate::constants::common_path;
+use common::models::PostalCode;
 use crate::file;
 use csv_async::AsyncReaderBuilder;
-use futures::io::AllowStdIo;
 use futures::stream::StreamExt;
 use std::collections::{HashMap, VecDeque};
-use std::fs::File;
-use std::io::BufReader;
 
 // Register uppercase letters in advance in the cache map
 fn build_replace_cache() -> HashMap<char, &'static str> {
@@ -39,6 +37,7 @@ fn format_csv_record_with_cache(
     pref_cache: &HashMap<String, String>,
     replace_cache: &HashMap<char, &str>,
 ) -> PostalCode {
+    let city_id = record.get(0).cloned().unwrap_or_else(|| "".to_string());
     let zip_code = record.get(2).cloned().unwrap_or_else(|| "".to_string());
     let prefecture = record.get(6).map_or_else(
         || "".to_string(),
@@ -46,7 +45,7 @@ fn format_csv_record_with_cache(
     );
     let prefecture_id = pref_cache
         .get(&prefecture)
-        .and_then(|id| id.parse().ok())
+            .and_then(|s| s.parse::<i32>().ok())
         .unwrap_or(0);
     let city = record.get(7).map_or_else(
         || "".to_string(),
@@ -55,15 +54,18 @@ fn format_csv_record_with_cache(
     let town = record
         .get(8)
         .map(|s| replace_japanese_to_alphanumeric_with_cache(s, replace_cache))
-        .filter(|s| !s.is_empty());
+        .unwrap_or_default();
+
     PostalCode {
         zip_code,
         prefecture_id,
+        city_id,
         prefecture,
         city,
-        town: match town.as_deref() {
-            Some("以下に掲載がない場合") => Some("".to_string()),
-            _ => town,
+        town: if town == "以下に掲載がない場合" {
+            "".to_string()
+        } else {
+            town
         },
     }
 }
@@ -91,16 +93,19 @@ pub async fn csv_stream_format(
     file_path: &str,
     is_header: bool,
 ) -> Result<Vec<PostalCode>, Box<dyn std::error::Error>> {
-    let file = File::open(file_path)?;
-    let reader = BufReader::new(file);
+    let content = tokio::fs::read(file_path).await?;
+    let (decoded, _, _) = encoding_rs::SHIFT_JIS.decode(&content);
+    let decoded_string = decoded.into_owned();
+
     let csv_reader = AsyncReaderBuilder::new()
         .has_headers(is_header)
-        .create_reader(AllowStdIo::new(reader));
+        .create_reader(decoded_string.as_bytes());
 
     let pref_cache = build_prefecture_cache().await;
     let replace_cache = build_replace_cache();
 
     let mut records_vec: Vec<PostalCode> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
     let mut records = csv_reader.into_records();
 
     while let Some(result) = records.next().await {
@@ -109,7 +114,9 @@ pub async fn csv_stream_format(
                 let deque: VecDeque<String> = record.iter().map(|s| s.to_string()).collect();
                 let formatted_record =
                     format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
-                records_vec.push(formatted_record);
+                if seen.insert(formatted_record.clone()) {
+                    records_vec.push(formatted_record);
+                }
             }
             Err(e) => eprintln!("Error processing record: {:?}", e),
         }

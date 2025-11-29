@@ -1,4 +1,4 @@
-use crate::constants::PostalCode;
+use common::models::PostalCode;
 use mysql_async::{params, prelude::Queryable, Pool};
 use tokio::task;
 use tokio::time::{sleep, Duration};
@@ -34,7 +34,11 @@ where
     }
 }
 
-pub async fn bulk_insert(pool: &Pool, data: &[PostalCode]) -> Result<(), mysql_async::Error> {
+pub async fn bulk_insert(
+    pool: &Pool,
+    data: &[PostalCode],
+    batch_timestamp: chrono::NaiveDateTime,
+) -> Result<(), mysql_async::Error> {
     let chunk_size = 200;
     println!("Inserting {} records", data.len());
 
@@ -46,13 +50,15 @@ pub async fn bulk_insert(pool: &Pool, data: &[PostalCode]) -> Result<(), mysql_a
         let handle = task::spawn(async move {
             println!("Chunk size: {}", chunk_data.len());
 
-            let query = r"INSERT INTO postal_codes (zip_code, prefecture_id, prefecture, city, town)
-              VALUES (:zip_code, :prefecture_id, :prefecture, :city, :town)
-              ON DUPLICATE KEY UPDATE
-              prefecture_id = VALUES(prefecture_id),
-              prefecture = VALUES(prefecture),
-              city = VALUES(city),
-              town = VALUES(town)";
+            let query = r"INSERT INTO postal_codes (zip_code, prefecture_id, city_id, prefecture, city, town, updated_at)
+        VALUES (:zip_code, :prefecture_id, :city_id, :prefecture, :city, :town, :updated_at)
+        ON DUPLICATE KEY UPDATE
+        prefecture_id = VALUES(prefecture_id),
+        city_id = VALUES(city_id),
+        prefecture = VALUES(prefecture),
+            city = VALUES(city),
+            town = VALUES(town),
+            updated_at = VALUES(updated_at)";
 
             retry_transaction(3, Duration::from_millis(500), || {
                 let params: Vec<_> = chunk_data
@@ -61,9 +67,11 @@ pub async fn bulk_insert(pool: &Pool, data: &[PostalCode]) -> Result<(), mysql_a
                         params! {
                             "zip_code" => &d.zip_code,
                             "prefecture_id" => &d.prefecture_id,
+                            "city_id" => &d.city_id,
                             "prefecture" => &d.prefecture.trim(),
                             "city" => &d.city.trim(),
-                            "town" => d.town.as_deref().unwrap_or("").trim(),
+                            "town" => d.town.trim(),
+                            "updated_at" => batch_timestamp,
                         }
                     })
                     .collect();
@@ -108,5 +116,23 @@ pub async fn bulk_insert(pool: &Pool, data: &[PostalCode]) -> Result<(), mysql_a
         }
     }
 
+    Ok(())
+}
+
+pub async fn delete_old_records_mysql(
+    pool: &Pool,
+    batch_timestamp: chrono::NaiveDateTime,
+) -> Result<(), mysql_async::Error> {
+    println!("Deleting records older than {:?}", batch_timestamp);
+    let mut conn = pool.get_conn().await?;
+    let query = "DELETE FROM postal_codes WHERE updated_at < :batch_timestamp";
+    conn.exec_drop(
+        query,
+        params! {
+            "batch_timestamp" => batch_timestamp,
+        },
+    )
+    .await?;
+    println!("Old records deleted from MySQL");
     Ok(())
 }

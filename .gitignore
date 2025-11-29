@@ -1,0 +1,4 @@
+OPERATION_MANUAL.md
+worker/crawler/temp_assets/*.zip
+worker/crawler/temp_assets/*.csv
+GITHUB_STRATEGY.md

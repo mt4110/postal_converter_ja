@@ -1,16 +1,16 @@
 # Dockerfile for minimal Rust setup
-FROM rust:1.81.0-alpine
+FROM rust:1.83-alpine
 
-RUN apk add --no-cache curl musl-dev libressl-dev gcc clang g++ make pkgconfig openssl-dev \
-    && curl -L https://github.com/dotenv-linter/dotenv-linter/releases/latest/download/dotenvx-alpine -o /usr/local/bin/dotenvx \
-    && chmod +x /usr/local/bin/dotenvx
+RUN apk add --no-cache curl musl-dev gcc clang g++ make pkgconfig openssl-dev \
+    && curl -sfS https://dotenvx.sh/install.sh | sh
 
 ENV LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
 ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
+ENV PATH="/root/.dotenvx/bin:$PATH"
 # 作業ディレクトリを作成
 WORKDIR /app
 
-COPY ./worker/crawler/.env /app/
+COPY ./worker/crawler/.env.unencrypted /app/.env
 COPY ./worker/crawler/Cargo.toml /app/
 COPY ./worker/crawler/src /app/src
 COPY ./worker/common /app/common
