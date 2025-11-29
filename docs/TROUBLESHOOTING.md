@@ -20,7 +20,7 @@ lsof -i:3202
 kill -9 36659
 
 # APIを再起動
-cargo run --release
+cargo run --release --bin api
 ```
 
 ### データベース接続エラー

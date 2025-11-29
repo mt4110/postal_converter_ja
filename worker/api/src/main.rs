@@ -56,7 +56,7 @@ async fn main() {
 
     // Build our application with a route
     let app = Router::new()
-        .route("/postal_codes/:zip_code", get(get_postal_code))
+        .route("/postal_codes/{zip_code}", get(get_postal_code))
         .route("/postal_codes/search", get(search_postal_code))
         .route("/postal_codes/prefectures", get(get_prefectures))
         .route("/postal_codes/cities", get(get_cities))
@@ -210,7 +210,7 @@ async fn search_postal_code(
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 struct PrefectureResponse {
-    prefecture_id: i32,
+    prefecture_id: i16,
     prefecture: String,
 }
 
@@ -270,7 +270,7 @@ struct CityResponse {
 
 #[derive(Deserialize)]
 struct CityParams {
-    prefecture_id: i32,
+    prefecture_id: i16,
 }
 
 async fn get_cities(

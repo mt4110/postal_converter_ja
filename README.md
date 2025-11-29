@@ -127,7 +127,7 @@ cd worker/crawler
 nix develop
 
 # Crawlerを起動
-cargo run --release
+cargo run --release --bin crawler
 ```
 
 初回実行時は以下の処理が行われます：
@@ -148,7 +148,7 @@ cd worker/api
 nix develop
 
 # APIサーバーを起動
-cargo run --release
+cargo run --release --bin api
 ```
 
 API サーバーは `http://localhost:3202` で起動します。
