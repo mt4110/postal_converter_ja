@@ -110,7 +110,7 @@ pub async fn bulk_insert(
             Err(join_error) => {
                 eprintln!("Task failed: {:?}", join_error);
                 return Err(mysql_async::Error::Io(mysql_async::IoError::Io(
-                    std::io::Error::new(std::io::ErrorKind::Other, join_error.to_string()),
+                    std::io::Error::other(join_error.to_string()),
                 )));
             }
         }

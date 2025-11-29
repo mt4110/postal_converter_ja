@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  api:
+    name: Rust API & Crawler Build / Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Rust toolchain
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # ---- API ----
+      - name: Cargo fmt (API)
+        working-directory: worker/api
+        run: cargo fmt -- --check
+
+      - name: Cargo clippy (API)
+        working-directory: worker/api
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Cargo test (API)
+        working-directory: worker/api
+        run: cargo test --all-features
+
+      # ---- Crawler ----
+      - name: Cargo fmt (Crawler)
+        working-directory: worker/crawler
+        run: cargo fmt -- --check
+
+      - name: Cargo clippy (Crawler)
+        working-directory: worker/crawler
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Cargo test (Crawler)
+        working-directory: worker/crawler
+        run: cargo test --all-features
+
+  frontend:
+    name: Frontend Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          yarn install --frozen-lockfile
+
+      - name: Lint
+        run: |
+          cd frontend
+          yarn lint

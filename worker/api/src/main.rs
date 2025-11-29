@@ -40,7 +40,7 @@ async fn main() {
             };
             DbPool::MySql(mysql_pool)
         }
-        "postgres" | _ => {
+        _ => {
             let pg_pool = match db::postgres_connection().await {
                 Ok(pool) => pool,
                 Err(e) => {

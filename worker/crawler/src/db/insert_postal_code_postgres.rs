@@ -1,7 +1,7 @@
-use common::models::PostalCode;
 use crate::db::query_builder::build_pg_bulk_insert_query;
 use crate::tlog;
 use crate::utils::thread::determine_thread_num;
+use common::models::PostalCode;
 use deadpool_postgres::{Pool as PgPool, PoolError};
 use futures::future::join_all;
 use tokio::time::{sleep, Duration};
@@ -62,16 +62,12 @@ async fn bulk_insert(
         // Calculate the parameter index for the timestamp
         // It will be appended to the end of the parameter list
         // let timestamp_param_index = chunk.len() * columns.len() + 1;
-        
+
         let timestamp_literal = batch_timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
 
-        let (query, params) = build_pg_bulk_insert_query(
-            "postal_codes",
-            columns,
-            &insert_data,
-            &timestamp_literal,
-        );
-        
+        let (query, params) =
+            build_pg_bulk_insert_query("postal_codes", columns, &insert_data, &timestamp_literal);
+
         // Add the timestamp as the last parameter
         // params.push(to_sql_param(&batch_timestamp));
 
@@ -161,7 +157,10 @@ pub async fn delete_old_records_postgres(
     let timestamp_literal = batch_timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
     println!("Deleting records older than {}", timestamp_literal);
     let client = pool.get().await.expect("Failed to get client");
-    let query = format!("DELETE FROM postal_codes WHERE updated_at < '{}'::TIMESTAMP", timestamp_literal);
+    let query = format!(
+        "DELETE FROM postal_codes WHERE updated_at < '{}'::TIMESTAMP",
+        timestamp_literal
+    );
     client.execute(&query, &[]).await?;
     println!("Old records deleted from Postgres");
     Ok(())
