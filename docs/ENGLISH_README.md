@@ -101,7 +101,7 @@ DATABASE_TYPE=postgres   # default
 ```bash
 cd worker/crawler
 nix develop
-cargo run --release
+cargo run --release --bin crawler
 ```
 
 On first run:
@@ -115,7 +115,7 @@ On first run:
 ```bash
 cd worker/api
 nix develop
-cargo run --release
+cargo run --release --bin api
 ```
 
 API starts at: **http://localhost:3202**

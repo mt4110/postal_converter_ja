@@ -60,7 +60,7 @@ fn format_csv_record_with_cache(
     );
     let prefecture_id = pref_cache
         .get(&prefecture)
-        .and_then(|s| s.parse::<i32>().ok())
+        .and_then(|s| s.parse::<i16>().ok())
         .unwrap_or(0);
     let city = record.get(7).map_or_else(
         || "".to_string(),

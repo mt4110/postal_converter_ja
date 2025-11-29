@@ -7,7 +7,11 @@ use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() {
-    dotenv::from_filename(".env").ok();
+    // Load .env file
+    if dotenv::from_filename(".env").is_err() {
+        // Try loading from crawler directory if running from workspace root
+        dotenv::from_filename("crawler/.env").ok();
+    }
     let zip_code_url = std::env::var("ZIP_CODE_URL").expect("ZIP_CODE_URL not set");
     // Default sleep duration: 24 hours (in seconds)
     let sleep_seconds: u64 = std::env::var("CRAWLER_INTERVAL_SECONDS")

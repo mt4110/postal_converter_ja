@@ -19,6 +19,18 @@ pub fn temp_dir() -> PathBuf {
 }
 // pref json
 pub fn common_path() -> PathBuf {
+    let paths = ["../common", "common"];
+    for p in paths {
+        let path = Path::new(p);
+        if path.exists() && path.is_dir() {
+            // Check if pref.json exists in this directory
+            let pref_json_path = path.join("pref.json");
+            if pref_json_path.exists() {
+                return fs::canonicalize(path).expect("Failed to get absolute path");
+            }
+        }
+    }
+    // Fallback
     get_absolute_path("../common")
 }
 // When the amount of data to be handled increases, create a models directory and migrate it.
