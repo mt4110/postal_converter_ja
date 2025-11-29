@@ -179,6 +179,8 @@ yarn dev
 
 👉 **開発者向け情報についてはこちら:** [DEVELOPMENT.md](./docs/DEVELOPMENT.md)
 
+👉 **CI/CD 設計についてはこちら:** [CI_DESIGN.md](./docs/CI_DESIGN.md)
+
 ## ライセンスと商用利用について
 
 本プロジェクトは、**デュアルライセンス**（Dual Licensing）を採用する予定です。
