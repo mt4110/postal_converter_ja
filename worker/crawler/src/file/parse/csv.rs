@@ -76,11 +76,11 @@ fn format_csv_record_with_cache(
     // by replace_japanese_to_alphanumeric_with_cache above.
     let town = remove_parentheses(&raw_town);
 
-    // Column 9 indicates if one zip code represents multiple town areas (1 = yes, 0 = no)
-    // If 0, it means the zip code corresponds to a single town area (which might be split across lines)
-    // If 1, it means the zip code covers multiple distinct towns, so we should NOT merge them.
-    let multi_town_in_zip = record
-        .get(9) // Access Index 9 directly (multi-town flag: 1=yes, 0=no)
+    // Column 12 (Index 12, 13th column) indicates "One town has multiple zip codes" (1=yes, 0=no)
+    // The user suggests using this flag to determine split lines.
+    // If 0, it likely means the town is simple and if split across lines, it should be merged.
+    let is_multi_town = record
+        .get(12) // Access Index 12 directly
         .map(|s| s == "1")
         .unwrap_or(false);
 
@@ -97,7 +97,7 @@ fn format_csv_record_with_cache(
                 town
             },
         },
-        multi_town_in_zip,
+        is_multi_town,
     )
 }
 
@@ -138,25 +138,23 @@ pub async fn csv_stream_format(
     let mut records_vec: Vec<PostalCode> = Vec::new();
     let mut records = csv_reader.into_records();
     let mut prev_record: Option<PostalCode> = None;
-    let mut prev_multi_town_in_zip = false;
+    let mut prev_is_multi_town = false;
 
     while let Some(result) = records.next().await {
         match result {
             Ok(record) => {
                 let deque: VecDeque<String> = record.iter().map(|s| s.to_string()).collect();
-                let (current, multi_town_in_zip) =
+                let (current, is_multi_town) =
                     format_csv_record_with_cache(deque, &pref_cache, &replace_cache);
 
                 if let Some(ref mut prev) = prev_record {
                     // Merge logic:
                     // 1. Same Zip Code and City ID
-                    // 2. AND 'multi_town_in_zip' flag is 0 for BOTH records (Index 9)
-                    //    If flag is 1, it means multiple distinct towns share the zip, so NO merge.
-                    //    If flag is 0, it implies a single town entity, so split lines should be merged.
+                    // 2. AND 'is_multi_town' flag is 0 for BOTH records (Index 12)
                     if prev.zip_code == current.zip_code
                         && prev.city_id == current.city_id
-                        && !prev_multi_town_in_zip
-                        && !multi_town_in_zip
+                        && !prev_is_multi_town
+                        && !is_multi_town
                     {
                         prev.town.push_str(&current.town);
                         // Continue to next record, keeping 'prev' as accumulator
@@ -168,7 +166,7 @@ pub async fn csv_stream_format(
                 }
                 // Update prev_record
                 prev_record = Some(current);
-                prev_multi_town_in_zip = multi_town_in_zip;
+                prev_is_multi_town = is_multi_town;
             }
             Err(e) => eprintln!("Error processing record: {:?}", e),
         }
