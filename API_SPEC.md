@@ -123,11 +123,11 @@ Example Response
 }
 ```
 
-### 認証（現状なし）
+### 4. 認証（現状なし）
 
 将来的には Optional API Key に対応可能。
 
-### Versioning
+### 5. Versioning
 
 API は SemVer に従い version upgrade で破壊的変更を管理。
 
