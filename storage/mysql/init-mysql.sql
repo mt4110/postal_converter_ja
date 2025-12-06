@@ -5,7 +5,7 @@ USE zip_code_db;
 -- Create postal_codes table (if not exists)
 CREATE TABLE IF NOT EXISTS postal_codes (
     zip_code CHAR(7) NOT NULL COMMENT '郵便番号',
-    prefecture_id SMALLINT UNSIGNED NOT NULL COMMENT '都道府県ID',
+    prefecture_id SMALLINT NOT NULL COMMENT '都道府県ID',
     city_id VARCHAR(10) NOT NULL COMMENT '市区町村コード',
     prefecture VARCHAR(32) NOT NULL COMMENT '都道府県',
     city VARCHAR(50) NOT NULL COMMENT '市区町村',
