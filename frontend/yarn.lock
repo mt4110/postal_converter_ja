@@ -2594,9 +2594,9 @@ foreground-child@^3.1.0:
     cross-spawn "^7.0.6"
     signal-exit "^4.0.1"
 
-framer-motion@^12.26.1:
+framer-motion@^12.23.26:
   version "12.26.1"
-  resolved "https://registry.yarnpkg.com/framer-motion/-/framer-motion-12.26.1.tgz#007a1d900add78fc65c890f88bd7f8d903f48e67"
+  resolved "https://registry.npmjs.org/framer-motion/-/framer-motion-12.26.1.tgz#007a1d900add78fc65c890f88bd7f8d903f48e67"
   integrity sha512-Uzc8wGldU4FpmGotthjjcj0SZhigcODjqvKT7lzVZHsmYkzQMFfMIv0vHQoXCeoe/Ahxqp4by4A6QbzFA/lblw==
   dependencies:
     motion-dom "^12.24.11"
