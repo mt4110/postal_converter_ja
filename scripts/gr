@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<USAGE
+Usage: $(basename "$0") [options]
+
+Create PR with template automatically applied via gh CLI.
+
+Options:
+  --title <title>         PR title (default: latest commit subject)
+  --base <branch>         base branch (default: main)
+  --head <branch>         head branch (default: current branch)
+  --repo <owner/repo>     target repository
+  --template <path>       template path (default: .github/pull_request_template.md)
+  --draft                 create as draft PR
+  --dry-run               print rendered body and command without creating PR
+  -h, --help              show help
+USAGE
+}
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "error: gh command not found" >&2
+  exit 1
+fi
+
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "${ROOT_DIR}" ]]; then
+  echo "error: not inside git repository" >&2
+  exit 1
+fi
+
+BASE_BRANCH="main"
+HEAD_BRANCH="$(git -C "${ROOT_DIR}" rev-parse --abbrev-ref HEAD)"
+TITLE="$(git -C "${ROOT_DIR}" log -1 --pretty=%s)"
+REPO=""
+TEMPLATE_PATH="${ROOT_DIR}/.github/pull_request_template.md"
+DRAFT_FLAG=""
+DRY_RUN=0
+
+while (($#)); do
+  case "$1" in
+    --title)
+      TITLE="$2"
+      shift 2
+      ;;
+    --base)
+      BASE_BRANCH="$2"
+      shift 2
+      ;;
+    --head)
+      HEAD_BRANCH="$2"
+      shift 2
+      ;;
+    --repo)
+      REPO="$2"
+      shift 2
+      ;;
+    --template)
+      TEMPLATE_PATH="$2"
+      shift 2
+      ;;
+    --draft)
+      DRAFT_FLAG="--draft"
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "error: unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+if ! gh auth status >/dev/null 2>&1; then
+  echo "error: gh is not authenticated. run: gh auth login -h github.com" >&2
+  exit 1
+fi
+
+BODY_FILE="$(mktemp)"
+trap 'rm -f "${BODY_FILE}"' EXIT
+
+"${ROOT_DIR}/scripts/render_pr_body.sh" \
+  --template "${TEMPLATE_PATH}" \
+  --base "${BASE_BRANCH}" \
+  --head "${HEAD_BRANCH}" > "${BODY_FILE}"
+
+GH_ARGS=(pr create --base "${BASE_BRANCH}" --head "${HEAD_BRANCH}" --title "${TITLE}" --body-file "${BODY_FILE}")
+if [[ -n "${REPO}" ]]; then
+  GH_ARGS+=(--repo "${REPO}")
+fi
+if [[ -n "${DRAFT_FLAG}" ]]; then
+  GH_ARGS+=("${DRAFT_FLAG}")
+fi
+
+if [[ ${DRY_RUN} -eq 1 ]]; then
+  echo "# gh command"
+  printf "gh"
+  for arg in "${GH_ARGS[@]}"; do
+    printf " %q" "${arg}"
+  done
+  printf "\n"
+  echo
+  echo "# rendered body"
+  cat "${BODY_FILE}"
+  exit 0
+fi
+
+( cd "${ROOT_DIR}" && gh "${GH_ARGS[@]}" )
