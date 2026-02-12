@@ -6,6 +6,7 @@ usage() {
 Usage: $(basename "$0") [options]
 
 Create PR with template automatically applied via gh CLI.
+Requires: GitHub CLI (gh) authenticated by `gh auth login`.
 
 Options:
   --title <title>         PR title (default: latest commit subject)

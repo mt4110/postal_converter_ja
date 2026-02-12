@@ -33,7 +33,7 @@ const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:32
 
 function clampLimit(limit?: number): number {
   if (!limit || Number.isNaN(limit)) {
-    return 20;
+    return 50;
   }
   return Math.max(1, Math.min(200, Math.floor(limit)));
 }

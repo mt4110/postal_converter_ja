@@ -1116,8 +1116,18 @@ mod tests {
     }
 
     #[test]
+    fn kana_conversion_hiragana_to_katakana_voiced_vu() {
+        assert_eq!(hiragana_to_katakana("ゔ"), "ヴ");
+    }
+
+    #[test]
     fn kana_conversion_katakana_to_hiragana() {
         assert_eq!(katakana_to_hiragana("シンジュク"), "しんじゅく");
+    }
+
+    #[test]
+    fn kana_conversion_katakana_to_hiragana_voiced_vu() {
+        assert_eq!(katakana_to_hiragana("ヴ"), "ゔ");
     }
 
     #[test]
