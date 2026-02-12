@@ -1151,7 +1151,10 @@ mod tests {
     #[test]
     fn truthy_parser_rejects_non_true_values() {
         for value in ["0", "false", "", "disabled", "no"] {
-            assert!(!is_truthy(value), "expected `{value}` to be treated as false");
+            assert!(
+                !is_truthy(value),
+                "expected `{value}` to be treated as false"
+            );
         }
     }
 
@@ -1172,6 +1175,9 @@ mod tests {
 
     #[test]
     fn cache_state_fails_when_strict_mode_enabled() {
-        assert_eq!(resolve_cache_state(true, false, true), Err("cache not ready"));
+        assert_eq!(
+            resolve_cache_state(true, false, true),
+            Err("cache not ready")
+        );
     }
 }
