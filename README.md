@@ -31,10 +31,7 @@ Rust 製のバックエンド（Crawler + API）と、Next.js 製のフロント
 
 - **Nix**: 開発環境の構築に使用します（Rust ツールチェーン、ビルドツールなど）
 - **Docker**: データベースの実行に使用します
-- **Mise** (オプション): Node.js/Yarn のバージョン管理に使用（推奨）
-- **Nix**: 開発環境の構築に使用します（Rust ツールチェーン、ビルドツールなど）
-- **Docker**: データベースの実行に使用します
-- **Mise** (オプション): Node.js/Yarn のバージョン管理に使用（推奨）
+- **補足**: Node.js / Yarn / Go / Rust は `nix develop` で提供されます（Nix 前提）
 
 ### Nix のインストール
 
@@ -56,14 +53,14 @@ Go 製の CLI ランチャーを使って、簡単に環境を起動できます
 
 ```bash
 cd launcher
-go run main.go
+nix develop --command go run main.go
 ```
 
 または、ビルドして実行：
 
 ```bash
 cd launcher
-go build -o postal-launcher
+nix develop --command go build -o postal-launcher
 ./postal-launcher
 ```
 
@@ -74,7 +71,48 @@ go build -o postal-launcher
 
 ---
 
-## 🛠 手動セットアップ & 実行ール後、シェルを再起動してください。
+## 🛠 手動セットアップ & 実行
+
+### 一括導入 (onboard.sh)
+
+プロファイル付きでローカル導入を一括実行できます。
+
+```bash
+./scripts/onboard.sh --profile dev
+```
+
+詳細は `docs/ONBOARDING_PROFILES.md` を参照してください。
+
+### 環境セットアップ自動化 (Nix + Docker)
+
+Nix / Docker 前提のセットアップを自動化する場合:
+
+```bash
+./scripts/setup_nix_docker.sh --profile dev
+```
+
+詳細は `docs/SETUP_NIX_DOCKER_AUTOMATION.md` を参照してください。
+
+### Docker イメージビルド (マルチステージ)
+
+API / Crawler はマルチステージDockerfileで軽量ランタイムイメージを生成できます。
+
+```bash
+# API
+docker build -f worker/api/Dockerfile -t postal-api:multistage .
+
+# Crawler
+docker build -f worker/crawler/Dockerfile -t postal-crawler:multistage .
+```
+
+実行例:
+
+```bash
+docker run --rm -p 3202:3202 \
+  -e DATABASE_TYPE=postgres \
+  -e POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@host.docker.internal:3205/zip_code_db \
+  postal-api:multistage
+```
 
 ## セットアップと実行
 
@@ -93,6 +131,12 @@ docker ps
 ```
 
 MySQL（ポート 3204）と PostgreSQL（ポート 3205）の両方が起動します。
+
+Redis キャッシュを使う場合は、以下で Redis も起動できます（オプション）:
+
+```bash
+docker compose --profile cache up -d redis
+```
 
 ### 2. 環境変数の設定
 
@@ -114,20 +158,51 @@ DATABASE_TYPE=postgres
 
 # MySQLを使用する場合
 DATABASE_TYPE=mysql
+
+# SQLiteを使用する場合（read-only PoC）
+DATABASE_TYPE=sqlite
+SQLITE_DATABASE_PATH=storage/sqlite/postal_codes.sqlite3
+
+# Redis キャッシュ（オプション）
+REDIS_URL=redis://127.0.0.1:3206
+REDIS_CACHE_TTL_SECONDS=300
 ```
+
+> [!NOTE]
+> `DATABASE_TYPE=sqlite` は API の read-only PoC 向けです。Crawler から SQLite への直接更新は未対応です。
+
+### SQLite DB 生成（PoC）
+
+PostgreSQL に取り込まれたデータから SQLite DB を生成できます:
+
+```bash
+nix develop --command bash -lc "./scripts/build_sqlite_from_postgres.sh"
+```
+
+SQLite 配布アーティファクト（DB + checksum + manifest）を作る場合:
+
+```bash
+nix develop --command bash -lc "./scripts/package_sqlite_release.sh"
+```
+
+`artifacts/sqlite/` に以下が生成されます。
+
+- `postal_codes-YYYYMMDD.sqlite3`
+- `checksums-YYYYMMDD.txt`
+- `manifest-YYYYMMDD.txt`
 
 ### 3. Crawler の実行（郵便番号データの自動取得・更新）
 
 **Nix 環境に入ってから**Crawler を起動します：
 
 ```bash
-cd worker/crawler
+nix develop --command bash -lc "cd worker/crawler && cargo run --release --bin crawler"
+```
 
-# Nix環境に入る（重要！）
-nix develop
+1サイクルだけ実行して終了したい場合（CI/バッチ向け）:
 
-# Crawlerを起動
-cargo run --release --bin crawler
+```bash
+nix develop --command bash -lc "cd worker/crawler && CRAWLER_RUN_ONCE=true cargo run --release --bin crawler"
 ```
 
 初回実行時は以下の処理が行われます：
@@ -136,35 +211,24 @@ cargo run --release --bin crawler
 - データベースへの初期データ投入（約 12 万件）
 
 その後、設定された間隔（デフォルト 24 時間）で自動的にデータを更新し続けます。
+`REDIS_URL` が設定されている場合、更新後に Redis キャッシュを自動失効します。
 
 ### 4. API サーバーの起動
 
 **別のターミナルで**、Nix 環境に入ってから API を起動します：
 
 ```bash
-cd worker/api
-
-# Nix環境に入る（重要！）
-nix develop
-
-# APIサーバーを起動
-cargo run --release --bin api
+nix develop --command bash -lc "cd worker/api && cargo run --release --bin api"
 ```
 
 API サーバーは `http://localhost:3202` で起動します。
 
 ### 5. フロントエンドの起動
 
-さらに**別のターミナルで**フロントエンドを起動します：
+さらに**別のターミナルで**、Nix 環境経由でフロントエンドを起動します：
 
 ```bash
-cd frontend
-
-# 依存関係のインストール（初回のみ）
-yarn install
-
-# 開発サーバーの起動
-yarn dev
+nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 ```
 
 ブラウザで `http://localhost:3203` にアクセスすると、郵便番号検索のデモ画面が表示されます。
@@ -175,11 +239,25 @@ yarn dev
 
 ## 開発者向け情報
 
-👉 **API ドキュメントはこちら:** [API_SPEC.md](./API_SPEC.md)
+👉 **API ドキュメント（OpenAPI JSON）:** `http://localhost:3202/openapi.json`
+
+👉 **Swagger UI:** `http://localhost:3202/docs`
+
+👉 **仕様書（補助ドキュメント）:** [API_SPEC.md](./API_SPEC.md)
 
 👉 **開発者向け情報についてはこちら:** [DEVELOPMENT.md](./docs/DEVELOPMENT.md)
 
 👉 **CI/CD 設計についてはこちら:** [CI_DESIGN.md](./docs/CI_DESIGN.md)
+
+👉 **デプロイ骨格（GitHub Actions + Terraform）はこちら:** [DEPLOY.md](./docs/DEPLOY.md)
+👉 **GitHub OIDC 設定スクリプト:** `./scripts/setup_github_oidc_vars.sh`
+👉 **Terraform workflow 実行スクリプト:** `./scripts/run_terraform_workflow.sh`
+
+👉 **SQLite read-only PoC についてはこちら:** [SQLITE_READONLY_POC.md](./docs/SQLITE_READONLY_POC.md)
+
+👉 **SQLite 配布ワークフロー（GitHub Actions 手動実行）:** `.github/workflows/sqlite-release.yml`
+
+👉 **販売準備ロードマップ（2026年4月目標）はこちら:** [SALES_READINESS_PLAN_2026Q2.md](./docs/SALES_READINESS_PLAN_2026Q2.md)
 
 ## ライセンスと商用利用について
 
@@ -196,16 +274,21 @@ yarn dev
 
 このモデルにより、オープンソースとしての発展と、持続可能な開発体制の両立を目指しています。
 
+> [!NOTE]
+> 個人受託を先行しやすくするための「条件付きフリーライセンス案」は、`docs/SALES_READINESS_PLAN_2026Q2.md` を参照してください。
+
 ## ロードマップ (TODO)
+
+詳細な実行計画（優先度・日付入り）は `docs/SALES_READINESS_PLAN_2026Q2.md` を参照してください。
 
 - [x] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
 - [x] **ランチャーの UX 改善**: 実行順序の制御と視覚的フィードバック
-- [ ] **環境構築の完全自動化**: Nix, Docker, Mise のインストールとセットアップ (`mise trust` 等)
-- [ ] **GCP デプロイ (v0.2.1)**: Cloud Run + Cloud SQL へのデプロイ構成
-- [ ] **IaC (Infrastructure as Code)**: Go 言語 (Pulumi/Terraform CDK) によるインフラ管理
+- [ ] **環境構築の完全自動化**: Nix + Docker 前提のインストールとセットアップ
+- [ ] **マルチプラットフォーム デプロイ基盤**: GitHub Actions + Terraform による環境展開（クラウド別ターゲット対応）
 - [ ] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
-- [ ] **Docker イメージの軽量化**: マルチステージビルドの最適化
-- [ ] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
+- [x] **Docker イメージの軽量化**: マルチステージビルドの最適化（API/Crawler）
+- [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize 含む）
+- [x] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
 
 ## バージョン
 

@@ -2,3 +2,10 @@ OPERATION_MANUAL.md
 worker/crawler/temp_assets/*.zip
 worker/crawler/temp_assets/*.csv
 GITHUB_STRATEGY.md
+artifacts/sqlite/*
+!artifacts/sqlite/.gitkeep
+docs/PRIVATE_LICENSE_LOCAL.md
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate
+infra/terraform/**/*.tfstate.*
+infra/terraform/**/tfplan
