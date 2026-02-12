@@ -1,6 +1,6 @@
 # Postal Converter JA – API Specification
 
-**Version:** v0.1.0-beta  
+**Version:** v0.4.0-beta  
 **Base URL (Local API Server):**
 http://localhost:3202
 
@@ -13,6 +13,10 @@ http://localhost:3202
 | GET    | `/postal_codes/prefectures` | 都道府県一覧取得               |
 | GET    | `/postal_codes/cities`      | 指定都道府県の市区町村一覧     |
 | GET    | `/health`                   | API の状態チェック             |
+| GET    | `/ready`                    | API の準備状態チェック         |
+| GET    | `/metrics`                  | 最低限メトリクス出力           |
+| GET    | `/openapi.json`             | OpenAPI 仕様(JSON)             |
+| GET    | `/docs`                     | Swagger UI                     |
 
 ## 2. 詳細仕様
 
@@ -50,12 +54,18 @@ Query Parameters
 
 | Name      | Required | Description                             |
 | --------- | -------- | --------------------------------------- |
-| `address` | true     | 住所の部分一致（例:「新宿」「千代田」） |
+| `address` | true     | 住所キーワード（かな揺れ正規化を適用） |
 | `limit`   | false    | デフォルト 50                           |
+| `mode`    | false    | `exact` / `prefix` / `partial`(default) |
 
 Example
 
-GET http://localhost:3202/postal_codes/search?address=新宿&limit=20
+GET http://localhost:3202/postal_codes/search?address=新宿&mode=partial&limit=20
+
+補足:
+
+- 住所キーワードは NFKC 正規化 + 空白除去を行う
+- かな揺れとして「ひらがな/カタカナ/半角カナ」の差分を吸収して検索する
 
 Example Response
 
@@ -80,8 +90,8 @@ Example Response
 
 ```
 [
-  { "id": 1, "name": "北海道" },
-  { "id": 13, "name": "東京都" }
+  { "prefecture_id": 1, "prefecture": "北海道" },
+  { "prefecture_id": 13, "prefecture": "東京都" }
 ]
 ```
 
@@ -112,20 +122,64 @@ Example Response
 { "status": "ok" }
 ```
 
+### GET /ready
+
+Example
+
+GET http://localhost:3202/ready
+
+Example Response
+
+```
+{
+  "status": "ready",
+  "database": "postgres",
+  "cache": "ok"
+}
+```
+
+Error Response (DB未接続時など)
+
+```
+{
+  "error": "database not ready"
+}
+```
+
+運用ポリシー (`READY_REQUIRE_CACHE`):
+
+- `false`（デフォルト）: Redis 障害時でも `200` を返し、`cache` は `error`
+- `true`: `REDIS_URL` が設定されている時、Redis 障害で `503`（`{"error":"cache not ready"}`）
+
+### GET /metrics
+
+Example
+
+GET http://localhost:3202/metrics
+
+Example Response
+
+```
+{
+  "requests_total": 245,
+  "errors_total": 2,
+  "not_found_total": 14,
+  "error_rate": 0.00816326530612245,
+  "average_latency_ms": 6.42
+}
+```
+
 ### エラーフォーマット（統一）
 
 ```
 {
-  "error": {
-    "message": "postal code not found",
-    "code": "NOT_FOUND"
-  }
+  "error": "not found"
 }
 ```
 
-### 4. 認証（現状なし）
+### 4. 認証
 
-将来的には Optional API Key に対応可能。
+現状は認証機構なし（ネットワーク境界で制御）。
 
 ### 5. Versioning
 
@@ -145,7 +199,23 @@ DATABASE_TYPE=postgres
 DATABASE_TYPE=mysql
 ```
 
-※Crawler / API ともに同じ値で運用すること。
+または
+
+```
+DATABASE_TYPE=sqlite
+SQLITE_DATABASE_PATH=storage/sqlite/postal_codes.sqlite3
+```
+
+Readiness 厳密化オプション:
+
+```
+READY_REQUIRE_CACHE=false
+```
+
+※`postgres` / `mysql` 運用時は Crawler / API ともに同じ値で運用すること。
+
+> [!NOTE]
+> `sqlite` は API の read-only PoC 用です。Crawler の SQLite 更新は未対応です。
 
 ## 7. 更新データの元（Japan Post）
 

@@ -1,11 +1,5 @@
-import FormDemo from "@/components/postalCode";
+import PostalShowcase from "@/components/postalShowcase";
 
 export default function Home() {
-  return (
-    <>
-      <div className="px-6 py-6 flex justify-center items-center align-middle">
-        <FormDemo />
-      </div>
-    </>
-  );
+  return <PostalShowcase />;
 }

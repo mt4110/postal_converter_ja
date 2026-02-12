@@ -166,6 +166,11 @@ SQLITE_DATABASE_PATH=storage/sqlite/postal_codes.sqlite3
 # Redis キャッシュ（オプション）
 REDIS_URL=redis://127.0.0.1:3206
 REDIS_CACHE_TTL_SECONDS=300
+
+# Readiness 厳密化（オプション）
+# true: REDIS_URL が設定されている時、Redis疎通失敗で /ready=503
+# false: Redis疎通失敗でも /ready=200（cache="error"）
+READY_REQUIRE_CACHE=false
 ```
 
 > [!NOTE]
@@ -213,6 +218,22 @@ nix develop --command bash -lc "cd worker/crawler && CRAWLER_RUN_ONCE=true cargo
 その後、設定された間隔（デフォルト 24 時間）で自動的にデータを更新し続けます。
 `REDIS_URL` が設定されている場合、更新後に Redis キャッシュを自動失効します。
 
+### 版指定ロールバック（最小CLI）
+
+Crawler が保存した `data_version` を指定して、`postal_codes` をスナップショットから復元できます。
+
+```bash
+nix develop --command bash -lc "cd worker/crawler && cargo run --release --bin rollback -- --database-type postgres --data-version v20260213002038361"
+```
+
+MySQL の場合:
+
+```bash
+nix develop --command bash -lc "cd worker/crawler && cargo run --release --bin rollback -- --database-type mysql --data-version v20260213002038361"
+```
+
+`data_version` は `data_update_audits` テーブルで確認できます。
+
 ### 4. API サーバーの起動
 
 **別のターミナルで**、Nix 環境に入ってから API を起動します：
@@ -231,7 +252,12 @@ API サーバーは `http://localhost:3202` で起動します。
 nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 ```
 
-ブラウザで `http://localhost:3203` にアクセスすると、郵便番号検索のデモ画面が表示されます。
+ブラウザで `http://localhost:3203` にアクセスすると、以下の導入サンプルを切り替えて確認できます。
+
+- EC 配送先自動補完フォーム
+- 会員登録フォーム（郵便番号検索 + 住所キーワード検索）
+
+SDK 実装サンプルは `frontend/src/lib/postal-sdk.ts` を参照してください。
 
 ## トラブルシューティング
 
@@ -242,6 +268,15 @@ nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 👉 **API ドキュメント（OpenAPI JSON）:** `http://localhost:3202/openapi.json`
 
 👉 **Swagger UI:** `http://localhost:3202/docs`
+
+👉 **Readiness:** `http://localhost:3202/ready`
+
+`/ready` の判定方針:
+
+- `READY_REQUIRE_CACHE=false`（デフォルト）: DB 接続が正常なら Ready。Redis 障害時は `cache="error"` を返す
+- `READY_REQUIRE_CACHE=true`: `REDIS_URL` が設定されている場合、Redis 障害時は `503`（`{"error":"cache not ready"}`）
+
+👉 **Metrics(JSON):** `http://localhost:3202/metrics`
 
 👉 **仕様書（補助ドキュメント）:** [API_SPEC.md](./API_SPEC.md)
 
