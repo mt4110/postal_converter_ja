@@ -32,7 +32,11 @@ while [ "$#" -gt 0 ]; do
     --ref)
       REF="${2:-}"
       if [ -z "${REF}" ]; then
-        echo "--ref requires branch/tag."
+        echo "--ref requires branch."
+        exit 1
+      fi
+      if [ "${REF#refs/tags/}" != "${REF}" ]; then
+        echo "--ref must be a branch, tag refs are not supported."
         exit 1
       fi
       shift 2
@@ -111,6 +115,11 @@ gh workflow run terraform-multiplatform.yml "${repo_args[@]}" "${ref_args[@]}" \
 echo "workflow dispatched: action=${ACTION}, environment=${ENVIRONMENT}"
 
 if [ "${WATCH}" = true ]; then
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "jq command is required for --watch mode."
+    exit 1
+  fi
+
   watch_branch="${REF}"
   if [ -z "${watch_branch}" ]; then
     watch_branch="$(git rev-parse --abbrev-ref HEAD)"

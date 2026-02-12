@@ -82,10 +82,11 @@ IAM Role 側の trust policy は最小で以下をベースにしてください
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:job_workflow_ref": "ORG/REPO/.github/workflows/terraform-multiplatform.yml@refs/heads/main"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:ORG/REPO:*"
+          "token.actions.githubusercontent.com:sub": "repo:ORG/REPO:ref:refs/heads/main"
         }
       }
     }

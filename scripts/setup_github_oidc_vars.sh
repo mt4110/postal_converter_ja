@@ -4,16 +4,18 @@ set -euo pipefail
 REPO=""
 WRITE=false
 USE_DUMMY=false
+SHOW_VALUES=false
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/setup_github_oidc_vars.sh [--repo owner/repo] [--write] [--use-dummy]
+  ./scripts/setup_github_oidc_vars.sh [--repo owner/repo] [--write] [--use-dummy] [--show-values]
 
 Behavior:
   - Default: dry-run (prints what would be set)
   - --write: actually writes GitHub Secrets/Variables via gh CLI
   - --use-dummy: fills missing values with dummy placeholders
+  - --show-values: print secret values in dry-run output (unsafe)
 
 Environment variables (optional):
   AWS_ROLE_TO_ASSUME
@@ -49,6 +51,10 @@ while [ "$#" -gt 0 ]; do
       USE_DUMMY=true
       shift
       ;;
+    --show-values)
+      SHOW_VALUES=true
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -61,12 +67,11 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if ! command -v gh >/dev/null 2>&1; then
-  echo "gh command is required."
-  exit 1
-fi
-
 if [ "${WRITE}" = true ]; then
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "gh command is required for --write mode."
+    exit 1
+  fi
   gh auth status -h github.com >/dev/null
 fi
 
@@ -106,7 +111,11 @@ set_secret() {
     gh secret set "${key}" "${repo_args[@]}" --body "${value}"
     echo "[ok] secret ${key}"
   else
-    echo "[dry-run] secret ${key} = ${value}"
+    if [ "${SHOW_VALUES}" = true ]; then
+      echo "[dry-run] secret ${key} = ${value}"
+    else
+      echo "[dry-run] secret ${key} = [hidden]"
+    fi
   fi
 }
 
