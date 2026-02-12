@@ -111,5 +111,22 @@ gh workflow run terraform-multiplatform.yml "${repo_args[@]}" "${ref_args[@]}" \
 echo "workflow dispatched: action=${ACTION}, environment=${ENVIRONMENT}"
 
 if [ "${WATCH}" = true ]; then
-  gh run watch "${repo_args[@]}" --exit-status
+  watch_branch="${REF}"
+  if [ -z "${watch_branch}" ]; then
+    watch_branch="$(git rev-parse --abbrev-ref HEAD)"
+  fi
+
+  run_id="$(gh run list "${repo_args[@]}" \
+    --workflow "Terraform Multi-Platform Skeleton" \
+    --branch "${watch_branch}" \
+    --limit 1 \
+    --json databaseId \
+    | jq -r '.[0].databaseId')"
+
+  if [ -z "${run_id}" ] || [ "${run_id}" = "null" ]; then
+    echo "Could not resolve latest run id for branch ${watch_branch}."
+    exit 1
+  fi
+
+  gh run watch "${run_id}" "${repo_args[@]}" --exit-status
 fi
