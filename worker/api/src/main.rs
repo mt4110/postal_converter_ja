@@ -137,18 +137,13 @@ struct CityParams {
     prefecture_id: i16,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 enum SearchMode {
     Exact,
     Prefix,
+    #[default]
     Partial,
-}
-
-impl Default for SearchMode {
-    fn default() -> Self {
-        Self::Partial
-    }
 }
 
 impl SearchMode {
