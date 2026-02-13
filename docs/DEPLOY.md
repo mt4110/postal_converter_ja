@@ -110,3 +110,7 @@ nix develop --command terraform -chdir=infra/terraform/platforms/aws init -backe
 nix develop --command terraform -chdir=infra/terraform/platforms/aws validate
 
 ```
+
+## 6. 実行証跡 (v0.8.0)
+
+- offline plan 証跡: `docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md`

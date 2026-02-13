@@ -329,6 +329,7 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 👉 **CI/CD 設計についてはこちら:** [CI_DESIGN.md](./docs/CI_DESIGN.md)
 
 👉 **デプロイ骨格（GitHub Actions + Terraform）はこちら:** [DEPLOY.md](./docs/DEPLOY.md)
+👉 **v0.8 offline plan 証跡:** [TERRAFORM_OFFLINE_PLAN_EVIDENCE.md](./docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md)
 👉 **GitHub OIDC 設定スクリプト:** `./scripts/setup_github_oidc_vars.sh`
 👉 **Terraform workflow 実行スクリプト:** `./scripts/run_terraform_workflow.sh`
 👉 **Terraform ローカル確認（Nix dev shell）:** `nix develop --command terraform version`
