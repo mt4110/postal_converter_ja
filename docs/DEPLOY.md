@@ -25,7 +25,8 @@
 ### 手動実行 (workflow_dispatch)
 
 `action=plan` を選ぶと、AWS で `terraform plan` を実行します。  
-`action=apply` を選ぶと、AWS で `terraform apply` を実行します（確認トークン必須）。
+`action=apply` を選ぶと、AWS で `terraform apply` を実行します（確認トークン必須）。  
+`action=destroy` を選ぶと、AWS で `terraform destroy` を実行します（確認トークン必須）。
 
 - `AWS_ROLE_TO_ASSUME` が未設定の場合: `plan` は offline mode で実行（Skeleton検証用途）
 - `AWS_ROLE_TO_ASSUME` が設定済みの場合: OIDC で AssumeRole して `plan/apply` を実行
@@ -41,6 +42,9 @@ CLI から実行する場合:
 
 # apply (AWS only)
 ./scripts/run_terraform_workflow.sh --action apply --environment dev --confirm-apply APPLY_AWS --ref feature/v0.8.0
+
+# destroy (AWS only)
+./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0
 ```
 
 ## 3. v0.8.0 の運用方針
@@ -56,7 +60,7 @@ CLI から実行する場合:
 - Secret: `AWS_ROLE_TO_ASSUME`
 - Variable: `AWS_REGION` (未設定時は `ap-northeast-1`)
 
-`apply` を実行するには AWS アカウントと IAM Role（OIDC trust policy 設定済み）が必須です。  
+`apply` / `destroy` を実行するには AWS アカウントと IAM Role（OIDC trust policy 設定済み）が必須です。  
 `plan` は Skeleton 段階では secret 未設定でも実行できます（offline mode）。
 
 GitHub Actions では `aws-actions/configure-aws-credentials@v4` を使い、OIDC で AssumeRole します。
@@ -123,6 +127,12 @@ Skeleton 段階では、rollback は `terraform destroy` を最小経路とし�
 ```bash
 terraform -chdir=infra/terraform/platforms/aws apply -auto-approve -refresh=false -input=false -lock=false -var-file=../../environments/dev/aws.tfvars
 terraform -chdir=infra/terraform/platforms/aws destroy -auto-approve -refresh=false -input=false -lock=false -var-file=../../environments/dev/aws.tfvars
+```
+
+GitHub Actions から実行する場合（確認トークン付き）:
+
+```bash
+./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0
 ```
 
 実AWS運用に入った後（OIDC + 実リソースあり）は、同じ経路で `dev` から先に検証してから `stg/prod` に展開します。

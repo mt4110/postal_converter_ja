@@ -1,6 +1,6 @@
 # 郵便番号自動最新化システム (Postal Converter JA)
 
-![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
 English README: [ENGLISH_README.md](./docs/ENGLISH_README.md)
@@ -333,6 +333,7 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 👉 **v0.8 rollback 証跡:** [TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md](./docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md)
 👉 **GitHub OIDC 設定スクリプト:** `./scripts/setup_github_oidc_vars.sh`
 👉 **Terraform workflow 実行スクリプト:** `./scripts/run_terraform_workflow.sh`
+👉 **Terraform rollback 実行（CI）:** `./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0`
 👉 **Terraform ローカル確認（Nix dev shell）:** `nix develop --command terraform version`
 
 `terraform` がローカルシェルで見えない場合は、Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。  
@@ -378,27 +379,27 @@ CI でも同等チェック（fmt/validate）を実行します。
 ## ロードマップ (TODO)
 
 詳細な実行計画（優先度・日付入り）は `docs/SALES_READINESS_PLAN_2026Q2.md` を参照してください。  
-v0.7.0 以降の実行順序は `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照してください。
+v0.8.0 以降の実行順序は `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照してください。
 
 - [x] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
 - [x] **ランチャーの UX 改善**: 実行順序の制御と視覚的フィードバック
 - [x] **環境構築の自動化 (v0.6)**: `scripts/setup_nix_docker.sh` + `scripts/onboard.sh` で導入を標準化
-- [ ] **デプロイ基盤 (v0.8)**: GitHub Actions + Terraform の AWS 先行運用を確立（その後マルチクラウド展開）
+- [x] **デプロイ基盤 (v0.8)**: GitHub Actions + Terraform の AWS 先行運用を確立（その後マルチクラウド展開）
 - [x] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
 - [x] **Docker イメージの軽量化**: マルチステージビルドの最適化（API/Crawler）
 - [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize 含む）
 - [x] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
 
-### v0.7.0 フォーカス（導入加速）
+### v0.8.0 フォーカス（デプロイ基盤）
 
-- [x] **導入SDKサンプル拡張**: EC / 会員登録 / コールセンター の3ユースケース
-- [x] **導入テンプレート整備**: 受託向け導入チェックリストを追加（`docs/CONTRACTOR_ONBOARDING_CHECKLIST.md`）
-- [x] **オンボーディング最終UX**: 同一ホスト端末での疎通証跡を取得（`docs/ONBOARDING_REHEARSAL_EVIDENCE.md`）
-- [x] **SQLite配布の運用基準化**: 月次運用チェックリストを追加（`docs/SQLITE_MONTHLY_OPERATION_CHECKLIST.md`）
+- [x] **AWS先行IaC運用**: GitHub Actions + Terraform の `validate/plan/apply` を `dev` で実行可能化
+- [x] **環境分離**: `dev/stg/prod` の `aws.tfvars` を追加
+- [x] **オフライン検証経路**: AWSシークレット未設定でも `plan` を実行できる導線を整備
+- [x] **ロールバック運用**: `destroy` 手順を runbook 化し、実行証跡を追加
 
 ## バージョン
 
-**v0.7.0 (Beta)** - Sales-ready onboarding kit
+**v0.8.0 (Beta)** - Deployment baseline with AWS-first Terraform workflow
 
 ## 貢献について (Contributing)
 
