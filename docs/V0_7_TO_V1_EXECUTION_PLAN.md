@@ -75,4 +75,4 @@ Exit Criteria:
 
 ## Next One Task
 
-1. Start v0.8.0 baseline: select one primary cloud target for Terraform apply path.
+1. Start v0.8.0 baseline: complete AWS-first Terraform plan/apply path for dev.

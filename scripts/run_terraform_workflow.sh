@@ -14,8 +14,8 @@ Usage:
   ./scripts/run_terraform_workflow.sh [--repo owner/repo] [--ref branch] --action validate|plan|apply [--environment dev|stg|prod] [--confirm-apply APPLY_AWS] [--no-watch]
 
 Examples:
-  ./scripts/run_terraform_workflow.sh --action plan --environment dev --ref codex/feature/v0.3.0
-  ./scripts/run_terraform_workflow.sh --action apply --environment dev --confirm-apply APPLY_AWS --ref codex/feature/v0.3.0
+  ./scripts/run_terraform_workflow.sh --action plan --environment dev --ref feature/v0.8.0
+  ./scripts/run_terraform_workflow.sh --action apply --environment dev --confirm-apply APPLY_AWS --ref feature/v0.8.0
 EOF
 }
 
@@ -126,7 +126,7 @@ if [ "${WATCH}" = true ]; then
   fi
 
   run_id="$(gh run list "${repo_args[@]}" \
-    --workflow "Terraform Multi-Platform Skeleton" \
+    --workflow "Terraform AWS Baseline" \
     --branch "${watch_branch}" \
     --limit 1 \
     --json databaseId \
