@@ -171,6 +171,22 @@ REDIS_CACHE_TTL_SECONDS=300
 # true: REDIS_URL が設定されている時、Redis疎通失敗で /ready=503
 # false: Redis疎通失敗でも /ready=200（cache="error"）
 READY_REQUIRE_CACHE=false
+
+# IP制限（オプション）
+# TRUST_PROXY_HEADERS=true の場合、X-Forwarded-For / X-Real-IP を優先して判定
+TRUST_PROXY_HEADERS=false
+# 例: IP_ALLOWLIST=203.0.113.10,10.0.0.0/24,2001:db8::/64
+IP_ALLOWLIST=
+
+# SSOヘッダ認証（最小構成）
+# none: 認証なし（デフォルト）
+# sso_header: IdP連携済みリバースプロキシが付与するヘッダを必須化
+AUTH_MODE=none
+AUTH_USER_HEADER=x-auth-request-email
+# 任意（未設定可）
+AUTH_GROUPS_HEADER=
+# 認証をスキップするパス（prefix判定、カンマ区切り）
+AUTH_ANONYMOUS_PATHS=/health,/ready,/openapi.json,/docs
 ```
 
 > [!NOTE]
@@ -276,9 +292,23 @@ SDK 実装サンプルは `frontend/src/lib/postal-sdk.ts` を参照してくだ
 - `READY_REQUIRE_CACHE=false`（デフォルト）: DB 接続が正常なら Ready。Redis 障害時は `cache="error"` を返す
 - `READY_REQUIRE_CACHE=true`: `REDIS_URL` が設定されている場合、Redis 障害時は `503`（`{"error":"cache not ready"}`）
 
+IP制限（`IP_ALLOWLIST`）:
+
+- 未設定: IP 制限なし
+- 設定あり: 許可IP/CIDR 以外は `403 {"error":"forbidden"}`
+- `TRUST_PROXY_HEADERS=true` の場合、`X-Forwarded-For` / `X-Real-IP` を優先して判定（Cloud Run 想定）
+
+SSOヘッダ認証（`AUTH_MODE=sso_header`）:
+
+- `AUTH_USER_HEADER` が存在しない場合は `401 {"error":"unauthorized"}`
+- 最小構成は「SAML IdP -> 認証プロキシ（oauth2-proxy など）-> API」
+- `/health` `/ready` `/openapi.json` `/docs` は既定で匿名アクセスを許可
+- 匿名許可パスは `AUTH_ANONYMOUS_PATHS` で調整可能（prefix判定）
+
 👉 **Metrics(JSON):** `http://localhost:3202/metrics`
 
 👉 **仕様書（補助ドキュメント）:** [API_SPEC.md](./API_SPEC.md)
+👉 **SSO最小構成設計:** [SAML_SSO_MINIMAL_DESIGN.md](./docs/SAML_SSO_MINIMAL_DESIGN.md)
 
 👉 **開発者向け情報についてはこちら:** [DEVELOPMENT.md](./docs/DEVELOPMENT.md)
 
