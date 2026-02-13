@@ -114,3 +114,15 @@ nix develop --command terraform -chdir=infra/terraform/platforms/aws validate
 ## 6. 実行証跡 (v0.8.0)
 
 - offline plan 証跡: `docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md`
+- rollback rehearsal 証跡: `docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md`
+
+## 7. Rollback Path (v0.8.0 minimum)
+
+Skeleton 段階では、rollback は `terraform destroy` を最小経路とします。
+
+```bash
+terraform -chdir=infra/terraform/platforms/aws apply -auto-approve -refresh=false -input=false -lock=false -var-file=../../environments/dev/aws.tfvars
+terraform -chdir=infra/terraform/platforms/aws destroy -auto-approve -refresh=false -input=false -lock=false -var-file=../../environments/dev/aws.tfvars
+```
+
+実AWS運用に入った後（OIDC + 実リソースあり）は、同じ経路で `dev` から先に検証してから `stg/prod` に展開します。
