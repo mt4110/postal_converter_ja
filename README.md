@@ -1,6 +1,6 @@
 # 郵便番号自動最新化システム (Postal Converter JA)
 
-![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
 English README: [ENGLISH_README.md](./docs/ENGLISH_README.md)
@@ -379,8 +379,7 @@ v0.7.0 以降の実行順序は `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照し
 
 ## バージョン
 
-**v0.6.0 (Beta)** - Enhanced Developer Experience & Robustness  
-Current target: **v0.7.0** (Sales-ready onboarding kit)
+**v0.7.0 (Beta)** - Sales-ready onboarding kit
 
 ## 貢献について (Contributing)
 
