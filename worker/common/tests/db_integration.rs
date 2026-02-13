@@ -139,8 +139,11 @@ async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Er
     )
     .await?;
 
-    conn.disconnect().await?;
-    pool.disconnect().await?;
+    // mysql_async 0.34系で明示disconnect時にランタイム終了タイミングと衝突し、
+    // "owned file descriptor already closed" でabortするケースがあるため、
+    // ここではdropに任せる。
+    drop(conn);
+    drop(pool);
 
     Ok(())
 }
