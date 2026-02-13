@@ -90,6 +90,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Guard AWS secret
+        run: |
+          if [ -z "${AWS_ROLE_TO_ASSUME}" ]; then
+            echo "::error::AWS_ROLE_TO_ASSUME is not configured."
+            exit 1
+          fi
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:

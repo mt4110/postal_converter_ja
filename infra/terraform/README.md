@@ -12,8 +12,13 @@
 ## Local Validate
 
 ```bash
+
 nix develop --command terraform -chdir=infra/terraform/platforms/aws init -backend=false
 nix develop --command terraform -chdir=infra/terraform/platforms/aws validate
+
+terraform -chdir=infra/terraform/platforms/aws init -backend=false
+terraform -chdir=infra/terraform/platforms/aws validate
+
 ```
 
 ## Notes
