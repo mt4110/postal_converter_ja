@@ -74,6 +74,7 @@ dependencies = [
  "common",
  "deadpool-postgres",
  "dotenv",
+ "ipnet",
  "mysql_async",
  "redis",
  "rusqlite",
