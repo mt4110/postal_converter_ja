@@ -179,7 +179,15 @@ Example Response
 
 ### 4. 認証
 
-現状は認証機構なし（ネットワーク境界で制御）。
+`AUTH_MODE` で挙動を切り替える。
+
+- `AUTH_MODE=none`（デフォルト）: 認証なし（ネットワーク境界で制御）
+- `AUTH_MODE=sso_header`: `AUTH_USER_HEADER` の存在を必須化
+  - ヘッダが無い場合は `401 {"error":"unauthorized"}`
+  - 既定の匿名許可パス: `/health,/ready,/openapi.json,/docs`
+  - `AUTH_ANONYMOUS_PATHS` で調整可能（prefix判定）
+
+IP制限（`IP_ALLOWLIST`）を有効化した場合は、許可されていない送信元IPに対して `403 {"error":"forbidden"}` を返す。
 
 ### 5. Versioning
 
@@ -210,6 +218,24 @@ Readiness 厳密化オプション:
 
 ```
 READY_REQUIRE_CACHE=false
+```
+
+IP制限オプション:
+
+```
+TRUST_PROXY_HEADERS=false
+IP_ALLOWLIST=203.0.113.10,10.0.0.0/24
+```
+
+※`TRUST_PROXY_HEADERS=true` の場合、`X-Forwarded-For` / `X-Real-IP` を優先して送信元IPを判定する。
+
+SSOヘッダ認証オプション:
+
+```
+AUTH_MODE=none
+AUTH_USER_HEADER=x-auth-request-email
+AUTH_GROUPS_HEADER=
+AUTH_ANONYMOUS_PATHS=/health,/ready,/openapi.json,/docs
 ```
 
 ※`postgres` / `mysql` 運用時は Crawler / API ともに同じ値で運用すること。
