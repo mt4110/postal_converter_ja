@@ -3,8 +3,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Building2,
+  Headset,
   IdCard,
   MapPinned,
+  Phone,
   Search,
   ShoppingCart,
   Sparkles,
@@ -13,7 +15,7 @@ import {
 import { ReactNode, useMemo, useState } from "react";
 import { createPostalSdk, formatZip, PostalCodeRecord } from "@/lib/postal-sdk";
 
-type ActiveTab = "ec" | "member";
+type ActiveTab = "ec" | "member" | "callcenter";
 
 type EcFormState = {
   customerName: string;
@@ -36,6 +38,17 @@ type MemberFormState = {
   addressDetail: string;
 };
 
+type CallCenterFormState = {
+  customerId: string;
+  phone: string;
+  zipCode: string;
+  keyword: string;
+  prefecture: string;
+  city: string;
+  town: string;
+  note: string;
+};
+
 const tabItems: Array<{ id: ActiveTab; label: string; icon: ReactNode; description: string }> = [
   {
     id: "ec",
@@ -48,6 +61,12 @@ const tabItems: Array<{ id: ActiveTab; label: string; icon: ReactNode; descripti
     label: "会員登録フォーム",
     icon: <IdCard className="h-4 w-4" />,
     description: "住所キーワード検索も併用できる登録導線",
+  },
+  {
+    id: "callcenter",
+    label: "コールセンター入力",
+    icon: <Headset className="h-4 w-4" />,
+    description: "通話中に住所候補を即提示し、入力時間を短縮",
   },
 ];
 
@@ -106,6 +125,20 @@ export default function PostalShowcase() {
   const [memberCandidates, setMemberCandidates] = useState<PostalCodeRecord[]>([]);
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberMessage, setMemberMessage] = useState<string>("");
+
+  const [callCenterForm, setCallCenterForm] = useState<CallCenterFormState>({
+    customerId: "",
+    phone: "",
+    zipCode: "",
+    keyword: "",
+    prefecture: "",
+    city: "",
+    town: "",
+    note: "",
+  });
+  const [callCenterCandidates, setCallCenterCandidates] = useState<PostalCodeRecord[]>([]);
+  const [callCenterLoading, setCallCenterLoading] = useState(false);
+  const [callCenterMessage, setCallCenterMessage] = useState("");
 
   const handleEcZipLookup = async () => {
     if (ecForm.zipCode.length !== 7) {
@@ -186,6 +219,56 @@ export default function PostalShowcase() {
     }
   };
 
+  const handleCallCenterZipLookup = async () => {
+    if (callCenterForm.zipCode.length !== 7) {
+      setCallCenterMessage("郵便番号は7桁で入力してください");
+      return;
+    }
+
+    setCallCenterLoading(true);
+    setCallCenterMessage("");
+    try {
+      const rows = await sdk.lookupZip(callCenterForm.zipCode);
+      setCallCenterCandidates(rows);
+      if (rows.length === 0) {
+        setCallCenterMessage("候補が見つかりませんでした");
+      } else {
+        setCallCenterForm((prev) => applyAddressFromRecord(prev, rows[0]));
+        setCallCenterMessage(`${rows.length}件ヒット。候補を選択してください。`);
+      }
+    } catch (error) {
+      console.error(error);
+      setCallCenterMessage("検索に失敗しました。API接続を確認してください。");
+    } finally {
+      setCallCenterLoading(false);
+    }
+  };
+
+  const handleCallCenterKeywordSearch = async () => {
+    const keyword = callCenterForm.keyword.trim();
+    if (!keyword) {
+      setCallCenterMessage("市区町村・町域などのキーワードを入力してください");
+      return;
+    }
+
+    setCallCenterLoading(true);
+    setCallCenterMessage("");
+    try {
+      const rows = await sdk.searchAddress(keyword, { mode: "partial", limit: 10 });
+      setCallCenterCandidates(rows);
+      if (rows.length === 0) {
+        setCallCenterMessage("候補がありませんでした");
+      } else {
+        setCallCenterMessage(`${rows.length}件ヒット。通話中に候補を選択してください。`);
+      }
+    } catch (error) {
+      console.error(error);
+      setCallCenterMessage("検索に失敗しました。API接続を確認してください。");
+    } finally {
+      setCallCenterLoading(false);
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-10 md:px-8 md:pt-14">
       <motion.section
@@ -205,7 +288,7 @@ export default function PostalShowcase() {
             郵便番号入力を、今どきのUXへ。
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:var(--ink-muted)] md:text-base">
-            ECフォームと会員登録フォームの2パターンを同じSDKで実装。郵便番号厳密検索と住所キーワード検索を組み合わせ、
+            ECフォーム、会員登録、コールセンター入力支援の3パターンを同じSDKで実装。郵便番号厳密検索と住所キーワード検索を組み合わせ、
             入力工数と誤記を同時に削減できます。
           </p>
           <div className="mt-4 text-xs text-[color:var(--ink-muted)] md:text-sm">
@@ -218,7 +301,7 @@ export default function PostalShowcase() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08, duration: 0.3 }}
-        className="mt-6 grid gap-3 md:grid-cols-2"
+        className="mt-6 grid gap-3 md:grid-cols-3"
       >
         {tabItems.map((tab) => {
           const active = activeTab === tab.id;
@@ -362,7 +445,7 @@ export default function PostalShowcase() {
               </div>
             ) : null}
           </motion.section>
-        ) : (
+        ) : activeTab === "member" ? (
           <motion.section key="member-panel" {...panelAnimation} className="mt-6 surface-card p-6 md:p-8">
             <div className="mb-6 flex items-center gap-2 text-lg font-semibold md:text-xl">
               <IdCard className="h-5 w-5" />
@@ -481,6 +564,146 @@ export default function PostalShowcase() {
                       type="button"
                       className="ghost-button justify-start"
                       onClick={() => setMemberForm((prev) => applyAddressFromRecord(prev, candidate))}
+                    >
+                      <MapPinned className="h-4 w-4" />
+                      {candidate.prefecture}
+                      {candidate.city}
+                      {candidate.town} ({formatZip(candidate.zip_code)})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </motion.section>
+        ) : (
+          <motion.section key="callcenter-panel" {...panelAnimation} className="mt-6 surface-card p-6 md:p-8">
+            <div className="mb-6 flex items-center gap-2 text-lg font-semibold md:text-xl">
+              <Headset className="h-5 w-5" />
+              コールセンター入力支援サンプル
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="field-block">
+                <span className="field-label">顧客ID</span>
+                <input
+                  className="outline-input"
+                  value={callCenterForm.customerId}
+                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, customerId: event.target.value }))}
+                  placeholder="CUST-2026-0001"
+                />
+              </label>
+
+              <label className="field-block">
+                <span className="field-label">発信者電話番号</span>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-[color:var(--ink-muted)]" />
+                  <input
+                    className="outline-input"
+                    value={callCenterForm.phone}
+                    onChange={(event) => setCallCenterForm((prev) => ({ ...prev, phone: event.target.value }))}
+                    placeholder="0312345678"
+                  />
+                </div>
+              </label>
+
+              <label className="field-block">
+                <span className="field-label">郵便番号</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    className="outline-input max-w-[180px]"
+                    value={formatZip(callCenterForm.zipCode)}
+                    onChange={(event) =>
+                      setCallCenterForm((prev) => ({
+                        ...prev,
+                        zipCode: normalizeZipInput(event.target.value),
+                      }))
+                    }
+                    placeholder="5300001"
+                  />
+                  <button
+                    type="button"
+                    className="pill-button"
+                    onClick={handleCallCenterZipLookup}
+                    disabled={callCenterLoading}
+                  >
+                    <Search className="h-4 w-4" />
+                    郵便番号検索
+                  </button>
+                </div>
+              </label>
+
+              <label className="field-block">
+                <span className="field-label">住所キーワード</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    className="outline-input"
+                    value={callCenterForm.keyword}
+                    onChange={(event) => setCallCenterForm((prev) => ({ ...prev, keyword: event.target.value }))}
+                    placeholder="梅田 / 渋谷 など"
+                  />
+                  <button
+                    type="button"
+                    className="pill-button"
+                    onClick={handleCallCenterKeywordSearch}
+                    disabled={callCenterLoading}
+                  >
+                    <Building2 className="h-4 w-4" />
+                    候補検索
+                  </button>
+                </div>
+              </label>
+
+              <label className="field-block">
+                <span className="field-label">都道府県</span>
+                <input
+                  className="outline-input"
+                  value={callCenterForm.prefecture}
+                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, prefecture: event.target.value }))}
+                />
+              </label>
+
+              <label className="field-block">
+                <span className="field-label">市区町村</span>
+                <input
+                  className="outline-input"
+                  value={callCenterForm.city}
+                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, city: event.target.value }))}
+                />
+              </label>
+
+              <label className="field-block">
+                <span className="field-label">町域</span>
+                <input
+                  className="outline-input"
+                  value={callCenterForm.town}
+                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, town: event.target.value }))}
+                />
+              </label>
+
+              <label className="field-block">
+                <span className="field-label">オペレーターメモ</span>
+                <input
+                  className="outline-input"
+                  value={callCenterForm.note}
+                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, note: event.target.value }))}
+                  placeholder="再配達希望時間など"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">{callCenterMessage}</div>
+            {callCenterCandidates.length > 0 ? (
+              <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3 text-sm">
+                <div className="mb-2 font-medium">通話中候補</div>
+                <div className="grid gap-2">
+                  {callCenterCandidates.map((candidate) => (
+                    <button
+                      key={`cc-${candidate.zip_code}-${candidate.city_id}-${candidate.town}`}
+                      type="button"
+                      className="ghost-button justify-start"
+                      onClick={() =>
+                        setCallCenterForm((prev) => applyAddressFromRecord(prev, candidate))
+                      }
                     >
                       <MapPinned className="h-4 w-4" />
                       {candidate.prefecture}

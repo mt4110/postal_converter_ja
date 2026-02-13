@@ -224,9 +224,19 @@ This model ensures sustainable development and fair support for long-term usage.
 ## 🗺 Roadmap
 
 - [x] CI/CD (GitHub Actions)
-- [ ] Integration tests for MySQL/PostgreSQL
+- [x] Integration tests for MySQL/PostgreSQL
 - [x] Lightweight Docker images (multi-stage for API/Crawler)
 - [x] OpenAPI/Swagger documentation
+- [x] Onboarding automation (`scripts/setup_nix_docker.sh`, `scripts/onboard.sh`)
+- [ ] Multi-platform deployment baseline (GitHub Actions + Terraform)
+- [ ] Kubernetes integration (Helm/Kustomize)
+
+### v0.7.0 Focus (Sales-ready onboarding)
+
+- [x] SDK samples for 3 use cases: EC checkout, member registration, call-center input support
+- [x] Delivery checklist for contractor onboarding (`docs/CONTRACTOR_ONBOARDING_CHECKLIST.md`)
+- [ ] Fresh-machine validation flow for install + start
+- [x] Monthly SQLite release operation checklist (`docs/SQLITE_MONTHLY_OPERATION_CHECKLIST.md`)
 
 ---
 
