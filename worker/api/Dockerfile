@@ -1,26 +1,38 @@
-# Dockerfile for minimal Rust setup
-FROM rust:1.83-alpine
+# syntax=docker/dockerfile:1.7
 
-RUN apk add --no-cache musl-dev libressl-dev gcc clang g++ make curl \
-    && curl -sfS https://dotenvx.sh/install.sh | sh
-ENV LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-ENV PATH="/root/.dotenvx/bin:$PATH"
+ARG RUST_VERSION=1.91.1
+
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    clang \
+    libclang-dev \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/worker
+COPY worker ./worker
+
+WORKDIR /workspace/worker/worker
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo build --release --locked -p api_service --bin api
+
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --create-home appuser
 
 WORKDIR /app
+COPY --from=builder /workspace/worker/worker/target/release/api /usr/local/bin/api
 
-COPY ./worker/api/Cargo.toml /app/
-COPY worker/api/src ./src
-COPY worker/api/.env .env
-COPY ./worker/common /app/common
+EXPOSE 3202
+USER appuser
 
-# common のパスを "./common" に書き換える
-RUN sed -i 's|\.\./common|./common|' /app/Cargo.toml
-
-# 依存関係をフェッチ
-RUN  cargo fetch
-
-# 依存関係をビルド（キャッシュ有効化のため）
-RUN cargo build --release --bin api
-
-CMD ["cargo", "run", "--release", "--bin", "api"]
+CMD ["api"]

@@ -1,0 +1,105 @@
+name: SQLite Release Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_label:
+        description: "Artifact label (e.g. 20260212). Empty = UTC date"
+        required: false
+        type: string
+      release_tag:
+        description: "GitHub release tag. Empty = sqlite-{version_label}"
+        required: false
+        type: string
+      create_github_release:
+        description: "Attach SQLite artifact to GitHub Release"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  sqlite-release:
+    name: Build SQLite artifact and optional release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.91.1
+
+      - name: Install SQLite CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+
+      - name: Start PostgreSQL
+        run: |
+          mkdir -p storage/postgres/postgres_data
+          docker compose up -d postgres
+
+      - name: Wait for PostgreSQL readiness
+        run: |
+          for i in $(seq 1 90); do
+            if docker exec postgres_container pg_isready -U postgres -d zip_code_db; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec postgres_container pg_isready -U postgres -d zip_code_db
+
+      - name: Resolve artifact metadata
+        id: meta
+        run: |
+          VERSION_LABEL="${{ inputs.version_label }}"
+          if [ -z "$VERSION_LABEL" ]; then
+            VERSION_LABEL="$(date -u +%Y%m%d)"
+          fi
+
+          RELEASE_TAG="${{ inputs.release_tag }}"
+          if [ -z "$RELEASE_TAG" ]; then
+            RELEASE_TAG="sqlite-${VERSION_LABEL}"
+          fi
+
+          echo "version_label=$VERSION_LABEL" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Run crawler once and ingest latest Japan Post data
+        working-directory: worker/crawler
+        env:
+          ZIP_CODE_URL: https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
+          CRAWLER_INTERVAL_SECONDS: "1"
+          CRAWLER_RUN_ONCE: "true"
+          DATABASE_TYPE: postgres
+          POSTGRES_DATABASE_URL: postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db
+        run: cargo run --release --bin crawler
+
+      - name: Package SQLite artifact
+        run: ./scripts/package_sqlite_release.sh "${{ steps.meta.outputs.version_label }}"
+
+      - name: Upload SQLite artifact bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlite-${{ steps.meta.outputs.version_label }}
+          path: |
+            artifacts/sqlite/postal_codes-${{ steps.meta.outputs.version_label }}.sqlite3
+            artifacts/sqlite/checksums-${{ steps.meta.outputs.version_label }}.txt
+            artifacts/sqlite/manifest-${{ steps.meta.outputs.version_label }}.txt
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: ${{ inputs.create_github_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          generate_release_notes: true
+          files: |
+            artifacts/sqlite/postal_codes-${{ steps.meta.outputs.version_label }}.sqlite3
+            artifacts/sqlite/checksums-${{ steps.meta.outputs.version_label }}.txt
+            artifacts/sqlite/manifest-${{ steps.meta.outputs.version_label }}.txt
+
+      - name: Stop PostgreSQL
+        if: always()
+        run: docker compose down -v

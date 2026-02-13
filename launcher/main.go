@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,7 +37,7 @@ var (
 	quitStyle = lipgloss.NewStyle().
 			MarginTop(1).
 			Foreground(lipgloss.Color("#626262"))
-	
+
 	guideStyle = lipgloss.NewStyle().
 			MarginTop(1).
 			Foreground(lipgloss.Color("#00D7FF")).
@@ -50,17 +52,17 @@ const (
 )
 
 type model struct {
-	choices        []string
-	cursor         int
-	quitting       bool
-	
+	choices  []string
+	cursor   int
+	quitting bool
+
 	// State
 	dbStatus       status
 	crawlerStatus  status
 	apiStatus      status
 	frontendStatus status
-	
-	msg            string // Status message
+
+	msg string // Status message
 }
 
 func initialModel() model {
@@ -204,7 +206,10 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		}
 		m.msg = "Opening Crawler terminal..."
 		return m, func() tea.Msg {
-			err := openInTerminal("cd worker/crawler && nix develop --command cargo run --release")
+			projectRoot := projectRootDir()
+			err := openInTerminal(
+				fmt.Sprintf("cd '%s' && nix develop --command bash -lc 'cd worker/crawler && cargo run --release --bin crawler'", projectRoot),
+			)
 			time.Sleep(500 * time.Millisecond)
 			return crawlerStartedMsg{err}
 		}
@@ -215,7 +220,10 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		}
 		m.msg = "Opening API terminal..."
 		return m, func() tea.Msg {
-			err := openInTerminal("cd worker/api && nix develop --command cargo run --release")
+			projectRoot := projectRootDir()
+			err := openInTerminal(
+				fmt.Sprintf("cd '%s' && nix develop --command bash -lc 'cd worker/api && cargo run --release --bin api'", projectRoot),
+			)
 			time.Sleep(500 * time.Millisecond)
 			return apiStartedMsg{err}
 		}
@@ -226,7 +234,10 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		}
 		m.msg = "Opening Frontend terminal..."
 		return m, func() tea.Msg {
-			err := openInTerminal("cd frontend && yarn dev")
+			projectRoot := projectRootDir()
+			err := openInTerminal(
+				fmt.Sprintf("cd '%s' && nix develop --command bash -lc 'cd frontend && yarn install && yarn dev'", projectRoot),
+			)
 			time.Sleep(500 * time.Millisecond)
 			return frontendStartedMsg{err}
 		}
@@ -252,9 +263,21 @@ func runCommand(name string, args ...string) error {
 
 func openInTerminal(command string) error {
 	// macOS specific: Open a new Terminal window and run the command
-	script := fmt.Sprintf("tell application \"Terminal\" to do script \"%s\"", command)
+	safeCommand := strings.ReplaceAll(command, "\"", "\\\"")
+	script := fmt.Sprintf("tell application \"Terminal\" to do script \"%s\"", safeCommand)
 	cmd := exec.Command("osascript", "-e", script)
 	return cmd.Run()
+}
+
+func projectRootDir() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "."
+	}
+	if filepath.Base(cwd) == "launcher" {
+		return filepath.Dir(cwd)
+	}
+	return cwd
 }
 
 func (m model) View() string {

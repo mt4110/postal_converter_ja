@@ -1,6 +1,6 @@
 [package]
 name = "crawler_service"
-version = "0.1.0"
+version = "0.6.0"
 edition = "2021"
 
 [dependencies]
@@ -22,17 +22,22 @@ zip = "7.0"
 serde = { version = "1.0", features = ["derive"] }
 common = { path = "../common" }
 deadpool-postgres = { version = "0.14", features = ["serde"] }
-mysql_async = { version = "0.34", default-features = false, features = [
+mysql_async = { version = "0.36.1", default-features = false, features = [
   "default",
   "chrono",
 ] }
 num_cpus = "1.16"
 chrono = { version = "0.4", features = ["serde"] }
 encoding_rs = "0.8.35"
+redis = { version = "0.32", features = ["tokio-comp"] }
 
 [[bin]]
 name = "crawler"
 path = "src/main.rs"
+
+[[bin]]
+name = "rollback"
+path = "src/bin/rollback.rs"
 
 
 [lib]

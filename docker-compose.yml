@@ -14,7 +14,7 @@ services:
 
   # MySQL Database: Stores postal code data (Primary storage)
   mysql:
-    image: mysql:latest
+    image: mysql:8.4
     container_name: mysql_container
     environment:
       MYSQL_ROOT_PASSWORD: mysql_root
@@ -29,10 +29,20 @@ services:
       - mysql_data:/var/lib/mysql
       - ./storage/mysql/init-mysql.sql:/docker-entrypoint-initdb.d/init-mysql.sql:ro
       - ./storage/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   # PostgreSQL Database: Stores postal code data (Alternative/Secondary storage)
   postgres:
-    image: postgres:latest
+    image: postgres:16
     container_name: postgres_container
     environment:
       POSTGRES_USER: postgres
@@ -43,19 +53,27 @@ services:
       - "3205:5432"
 
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
       - ./storage/postgres/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_container
+    profiles:
+      - cache
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "3206:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
   mysql_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./storage/mysql/mysql_data
   postgres_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./storage/postgres/postgres_data
+  redis_data:

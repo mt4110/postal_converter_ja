@@ -1,6 +1,6 @@
 # 郵便番号自動最新化システム (Postal Converter JA)
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
 English README: [ENGLISH_README.md](./docs/ENGLISH_README.md)
@@ -131,6 +131,19 @@ docker ps
 ```
 
 MySQL（ポート 3204）と PostgreSQL（ポート 3205）の両方が起動します。
+
+デフォルトは **named volume**（推奨）です。  
+ホストのディレクトリを直接マウントしたい場合のみ、`docker-compose.local.yml` を重ねます:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+```
+
+`binlog.index Permission denied` などでローカルDBが壊れた場合は、まず初期化してください:
+
+```bash
+docker compose down -v
+```
 
 Redis キャッシュを使う場合は、以下で Redis も起動できます（オプション）:
 
@@ -357,7 +370,7 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 
 ## バージョン
 
-**v0.2.0 (Beta)** - Enhanced Developer Experience & Robustness
+**v0.6.0 (Beta)** - Enhanced Developer Experience & Robustness
 
 ## 貢献について (Contributing)
 

@@ -59,19 +59,9 @@ async fn bulk_insert(
             })
             .collect();
 
-        // Calculate the parameter index for the timestamp
-        // It will be appended to the end of the parameter list
-        // let timestamp_param_index = chunk.len() * columns.len() + 1;
-
-        let timestamp_literal = batch_timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
-
-        let (query, params) =
-            build_pg_bulk_insert_query("postal_codes", columns, &insert_data, &timestamp_literal);
-
-        // Add the timestamp as the last parameter
-        // params.push(to_sql_param(&batch_timestamp));
-
-        // tlog!("Params: {:?}", params);
+        let batch_timestamp_utc = batch_timestamp.and_utc();
+        let (query, mut params) = build_pg_bulk_insert_query("postal_codes", columns, &insert_data);
+        params.push(to_sql_param(&batch_timestamp_utc));
 
         // Execute the transaction and asynchronously wait for the result
         if let Err(e) = tx.execute(&query, &params).await {
@@ -153,15 +143,16 @@ pub async fn bulk_insert_async(
 pub async fn delete_old_records_postgres(
     pool: &PgPool,
     batch_timestamp: chrono::NaiveDateTime,
-) -> Result<(), PgError> {
-    let timestamp_literal = batch_timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
-    println!("Deleting records older than {}", timestamp_literal);
+) -> Result<u64, PgError> {
+    let batch_timestamp_utc = batch_timestamp.and_utc();
+    println!("Deleting records older than {}", batch_timestamp_utc);
     let client = pool.get().await.expect("Failed to get client");
-    let query = format!(
-        "DELETE FROM postal_codes WHERE updated_at < '{}'::TIMESTAMP",
-        timestamp_literal
-    );
-    client.execute(&query, &[]).await?;
+    let deleted_rows = client
+        .execute(
+            "DELETE FROM postal_codes WHERE updated_at < $1",
+            &[&batch_timestamp_utc],
+        )
+        .await?;
     println!("Old records deleted from Postgres");
-    Ok(())
+    Ok(deleted_rows)
 }

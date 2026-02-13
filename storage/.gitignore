@@ -4,3 +4,4 @@ postgres/postgres_data/*
 redis/*
 mongodb/*
 sqlite/*
+!sqlite/.gitkeep

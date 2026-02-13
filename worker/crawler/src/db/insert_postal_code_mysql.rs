@@ -50,8 +50,8 @@ pub async fn bulk_insert(
         let handle = task::spawn(async move {
             println!("Chunk size: {}", chunk_data.len());
 
-            let query = r"INSERT INTO postal_codes (zip_code, prefecture_id, city_id, prefecture, city, town, updated_at)
-        VALUES (:zip_code, :prefecture_id, :city_id, :prefecture, :city, :town, :updated_at)
+            let query = r"INSERT INTO postal_codes (zip_code, prefecture_id, city_id, prefecture, city, town, created_at, updated_at)
+        VALUES (:zip_code, :prefecture_id, :city_id, :prefecture, :city, :town, :created_at, :updated_at)
         ON DUPLICATE KEY UPDATE
         prefecture_id = VALUES(prefecture_id),
         city_id = VALUES(city_id),
@@ -71,6 +71,7 @@ pub async fn bulk_insert(
                             "prefecture" => &d.prefecture.trim(),
                             "city" => &d.city.trim(),
                             "town" => d.town.trim(),
+                            "created_at" => batch_timestamp,
                             "updated_at" => batch_timestamp,
                         }
                     })
@@ -122,7 +123,7 @@ pub async fn bulk_insert(
 pub async fn delete_old_records_mysql(
     pool: &Pool,
     batch_timestamp: chrono::NaiveDateTime,
-) -> Result<(), mysql_async::Error> {
+) -> Result<u64, mysql_async::Error> {
     println!("Deleting records older than {:?}", batch_timestamp);
     let mut conn = pool.get_conn().await?;
     let query = "DELETE FROM postal_codes WHERE updated_at < :batch_timestamp";
@@ -133,6 +134,7 @@ pub async fn delete_old_records_mysql(
         },
     )
     .await?;
+    let deleted_rows = conn.affected_rows();
     println!("Old records deleted from MySQL");
-    Ok(())
+    Ok(deleted_rows)
 }
