@@ -94,8 +94,13 @@ AWS Secrets/Variables をまとめて設定する場合:
 
 ## 5. ローカル検証
 
+`terraform` がローカルシェルで見えない場合は Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。
+Homebrew の `terraform` は 1.5.7 で固定される場合があるため、バージョン差異回避のためにも Nix 利用を推奨します。
+
 ```bash
-terraform -chdir=infra/terraform/platforms/aws init -backend=false
-terraform -chdir=infra/terraform/platforms/aws validate
+nix develop --command terraform version
+nix develop --command terraform fmt -check -recursive infra/terraform
+nix develop --command terraform -chdir=infra/terraform/platforms/aws init -backend=false
+nix develop --command terraform -chdir=infra/terraform/platforms/aws validate
 
 ```

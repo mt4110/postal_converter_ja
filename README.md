@@ -331,6 +331,17 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 👉 **デプロイ骨格（GitHub Actions + Terraform）はこちら:** [DEPLOY.md](./docs/DEPLOY.md)
 👉 **GitHub OIDC 設定スクリプト:** `./scripts/setup_github_oidc_vars.sh`
 👉 **Terraform workflow 実行スクリプト:** `./scripts/run_terraform_workflow.sh`
+👉 **Terraform ローカル確認（Nix dev shell）:** `nix develop --command terraform version`
+
+`terraform` がローカルシェルで見えない場合は、Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。  
+Homebrew 経由では `terraform` が 1.5.7 固定になることがあるため、バージョン差異を避ける目的でも Nix を推奨します。
+
+```bash
+nix develop --command terraform fmt -check -recursive infra/terraform
+nix develop --command terraform -chdir=infra/terraform/platforms/aws validate
+```
+
+CI でも同等チェック（fmt/validate）を実行します。
 
 👉 **SQLite read-only PoC についてはこちら:** [SQLITE_READONLY_POC.md](./docs/SQLITE_READONLY_POC.md)
 
