@@ -27,6 +27,9 @@
 `action=plan` を選ぶと、AWS で `terraform plan` を実行します。  
 `action=apply` を選ぶと、AWS で `terraform apply` を実行します（確認トークン必須）。
 
+- `AWS_ROLE_TO_ASSUME` が未設定の場合: `plan` は offline mode で実行（Skeleton検証用途）
+- `AWS_ROLE_TO_ASSUME` が設定済みの場合: OIDC で AssumeRole して `plan/apply` を実行
+
 CLI から実行する場合:
 
 ```bash
@@ -52,6 +55,9 @@ CLI から実行する場合:
 
 - Secret: `AWS_ROLE_TO_ASSUME`
 - Variable: `AWS_REGION` (未設定時は `ap-northeast-1`)
+
+`apply` を実行するには AWS アカウントと IAM Role（OIDC trust policy 設定済み）が必須です。  
+`plan` は Skeleton 段階では secret 未設定でも実行できます（offline mode）。
 
 GitHub Actions では `aws-actions/configure-aws-credentials@v4` を使い、OIDC で AssumeRole します。
 `workflow_dispatch` の `action=plan` 実行時、`matrix.platform == aws` で有効になります。

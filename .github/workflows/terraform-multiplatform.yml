@@ -90,19 +90,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Guard AWS secret
-        run: |
-          if [ -z "${AWS_ROLE_TO_ASSUME}" ]; then
-            echo "::error::AWS_ROLE_TO_ASSUME is not configured."
-            exit 1
-          fi
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.11.1
 
+      - name: Plan mode
+        run: |
+          if [ -z "${AWS_ROLE_TO_ASSUME}" ]; then
+            echo "Running offline plan mode (no AWS OIDC secret configured)."
+          else
+            echo "Running OIDC-backed plan mode."
+          fi
+
       - name: Configure AWS credentials (OIDC)
+        if: env.AWS_ROLE_TO_ASSUME != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
