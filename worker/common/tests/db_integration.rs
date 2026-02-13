@@ -1,5 +1,5 @@
 use common::db;
-use mysql_async::{params, prelude::Queryable};
+use mysql::{params, prelude::Queryable, Pool as MySqlPool};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn unique_seed() -> u64 {
@@ -71,12 +71,19 @@ async fn postgres_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-#[tokio::test(flavor = "current_thread")]
-async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Error>> {
-    if std::env::var("MYSQL_DATABASE_URL").is_err() {
-        eprintln!("skip mysql test: MYSQL_DATABASE_URL is not set");
-        return Ok(());
-    }
+#[test]
+fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Error>> {
+    let mysql_url = match std::env::var("MYSQL_DATABASE_URL") {
+        Ok(v) => v,
+        Err(_) => {
+            eprintln!("skip mysql test: MYSQL_DATABASE_URL is not set");
+            return Ok(());
+        }
+    };
+
+    let opts = mysql::Opts::from_url(&mysql_url)?;
+    let pool = MySqlPool::new(opts)?;
+    let mut conn = pool.get_conn()?;
 
     let seed = unique_seed();
     let zip_code = build_test_zip(seed);
@@ -85,9 +92,6 @@ async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Er
     let city = format!("integration-city-{seed}");
     let town = format!("integration-town-{seed}");
     let prefecture = "大阪府".to_string();
-
-    let pool = db::mysql_connection().await?;
-    let mut conn = pool.get_conn().await?;
 
     conn.exec_drop(
         "INSERT INTO postal_codes (zip_code, prefecture_id, city_id, prefecture, city, town)
@@ -100,22 +104,19 @@ async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Er
             "city" => &city,
             "town" => &town,
         },
-    )
-    .await?;
+    )?;
 
-    let row: Option<(String, i16, String, String, String, String)> = conn
-        .exec_first(
-            "SELECT zip_code, prefecture_id, city_id, prefecture, city, town
-             FROM postal_codes
-             WHERE zip_code = :zip_code AND prefecture_id = :prefecture_id AND city = :city AND town = :town",
-            params! {
-                "zip_code" => &zip_code,
-                "prefecture_id" => prefecture_id,
-                "city" => &city,
-                "town" => &town,
-            },
-        )
-        .await?;
+    let row: Option<(String, i16, String, String, String, String)> = conn.exec_first(
+        "SELECT zip_code, prefecture_id, city_id, prefecture, city, town
+         FROM postal_codes
+         WHERE zip_code = :zip_code AND prefecture_id = :prefecture_id AND city = :city AND town = :town",
+        params! {
+            "zip_code" => &zip_code,
+            "prefecture_id" => prefecture_id,
+            "city" => &city,
+            "town" => &town,
+        },
+    )?;
 
     let row = row.expect("inserted row was not found in mysql");
     assert_eq!(row.0, zip_code);
@@ -134,14 +135,7 @@ async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Er
             "city" => &city,
             "town" => &town,
         },
-    )
-    .await?;
-
-    // mysql_async 0.34系で明示disconnect時にランタイム終了タイミングと衝突し、
-    // "owned file descriptor already closed" でabortするケースがあるため、
-    // ここではdropに任せる。
-    drop(conn);
-    drop(pool);
+    )?;
 
     Ok(())
 }
