@@ -1,18 +1,20 @@
 use axum::{
-    extract::{Path, Query, State},
-    http::{Request, StatusCode},
+    extract::{connect_info::ConnectInfo, Path, Query, State},
+    http::{header::HeaderName, Request, StatusCode},
     middleware::Next,
-    response::{Html, Response},
+    response::{Html, IntoResponse, Response},
     routing::get,
     Json, Router,
 };
 use common::{db, models::PostalCode};
 use deadpool_postgres::Pool as PgPool;
+use ipnet::IpNet;
 use mysql_async::Pool as MySqlPool;
 use redis::{aio::ConnectionManager as RedisConnectionManager, AsyncCommands};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     collections::HashSet,
+    net::{IpAddr, SocketAddr},
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -35,7 +37,45 @@ struct AppState {
     cache: Option<RedisConnectionManager>,
     cache_ttl_seconds: u64,
     ready_require_cache: bool,
+    ip_allowlist: Option<IpAllowlist>,
+    trust_proxy_headers: bool,
+    auth: AuthConfig,
     metrics: ApiMetrics,
+}
+
+struct IpAllowlist {
+    networks: Vec<IpNet>,
+}
+
+impl IpAllowlist {
+    fn contains(&self, ip: IpAddr) -> bool {
+        self.networks.iter().any(|network| network.contains(&ip))
+    }
+}
+
+const DEFAULT_AUTH_ANONYMOUS_PATHS: &str = "/health,/ready,/openapi.json,/docs";
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum AuthMode {
+    #[default]
+    None,
+    SsoHeader,
+}
+
+#[derive(Debug, Clone)]
+struct AuthConfig {
+    mode: AuthMode,
+    user_header: HeaderName,
+    groups_header: Option<HeaderName>,
+    anonymous_path_prefixes: Vec<String>,
+}
+
+impl AuthConfig {
+    fn is_anonymous_path(&self, path: &str) -> bool {
+        self.anonymous_path_prefixes
+            .iter()
+            .any(|prefix| path_matches_prefix(path, prefix))
+    }
 }
 
 #[derive(Serialize, ToSchema)]
@@ -288,6 +328,15 @@ fn not_ready_error(message: &str) -> ApiError {
     )
 }
 
+fn unauthorized_error() -> ApiError {
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(ErrorResponse {
+            error: "unauthorized".to_string(),
+        }),
+    )
+}
+
 fn is_truthy(value: &str) -> bool {
     matches!(
         value.trim().to_lowercase().as_str(),
@@ -300,6 +349,63 @@ fn parse_bool_env(var_name: &str, default: bool) -> bool {
         .ok()
         .map(|v| is_truthy(&v))
         .unwrap_or(default)
+}
+
+fn parse_auth_mode(raw: &str) -> Result<AuthMode, String> {
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "none" => Ok(AuthMode::None),
+        "sso_header" => Ok(AuthMode::SsoHeader),
+        _ => Err(format!(
+            "AUTH_MODE must be one of: none | sso_header (received: {raw})"
+        )),
+    }
+}
+
+fn parse_header_name_env(var_name: &str, default: &str) -> Result<HeaderName, String> {
+    let raw = std::env::var(var_name).unwrap_or_else(|_| default.to_string());
+    raw.trim()
+        .parse::<HeaderName>()
+        .map_err(|_| format!("{var_name} is not a valid HTTP header name: {raw}"))
+}
+
+fn parse_optional_header_name_env(var_name: &str) -> Result<Option<HeaderName>, String> {
+    match std::env::var(var_name) {
+        Ok(raw) if !raw.trim().is_empty() => raw
+            .trim()
+            .parse::<HeaderName>()
+            .map(Some)
+            .map_err(|_| format!("{var_name} is not a valid HTTP header name: {raw}")),
+        _ => Ok(None),
+    }
+}
+
+fn parse_path_prefixes(raw: &str) -> Vec<String> {
+    let mut prefixes = Vec::new();
+    for entry in raw
+        .split(',')
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+    {
+        let normalized = if entry.starts_with('/') {
+            entry.to_string()
+        } else {
+            format!("/{entry}")
+        };
+        if !prefixes.contains(&normalized) {
+            prefixes.push(normalized);
+        }
+    }
+    prefixes
+}
+
+fn path_matches_prefix(path: &str, prefix: &str) -> bool {
+    if prefix == "/" {
+        return true;
+    }
+    if path == prefix {
+        return true;
+    }
+    path.starts_with(prefix) && path.as_bytes().get(prefix.len()) == Some(&b'/')
 }
 
 fn resolve_cache_state(
@@ -317,6 +423,127 @@ fn resolve_cache_state(
         return Err("cache not ready");
     }
     Ok("error")
+}
+
+fn parse_ip_allowlist(raw: &str) -> Result<IpAllowlist, String> {
+    let mut networks: Vec<IpNet> = Vec::new();
+    for token in raw
+        .split(',')
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+    {
+        let network = if token.contains('/') {
+            token
+                .parse::<IpNet>()
+                .map_err(|_| format!("invalid CIDR entry: {token}"))?
+        } else {
+            let ip = token
+                .parse::<IpAddr>()
+                .map_err(|_| format!("invalid IP entry: {token}"))?;
+            IpNet::from(ip)
+        };
+        networks.push(network);
+    }
+
+    if networks.is_empty() {
+        return Err("IP_ALLOWLIST is empty".to_string());
+    }
+    Ok(IpAllowlist { networks })
+}
+
+fn extract_forwarded_for_ip(value: &str) -> Option<IpAddr> {
+    value.split(',').next()?.trim().parse::<IpAddr>().ok()
+}
+
+fn resolve_client_ip(
+    request: &Request<axum::body::Body>,
+    trust_proxy_headers: bool,
+) -> Option<IpAddr> {
+    if trust_proxy_headers {
+        if let Some(forwarded_for) = request
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|value| value.to_str().ok())
+            .and_then(extract_forwarded_for_ip)
+        {
+            return Some(forwarded_for);
+        }
+
+        if let Some(real_ip) = request
+            .headers()
+            .get("x-real-ip")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.trim().parse::<IpAddr>().ok())
+        {
+            return Some(real_ip);
+        }
+    }
+
+    request
+        .extensions()
+        .get::<ConnectInfo<SocketAddr>>()
+        .map(|connect_info| connect_info.0.ip())
+}
+
+fn extract_non_empty_header(
+    request: &Request<axum::body::Body>,
+    header_name: &HeaderName,
+) -> Option<String> {
+    request
+        .headers()
+        .get(header_name)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+async fn ip_allowlist_middleware(
+    State(state): State<Arc<AppState>>,
+    request: Request<axum::body::Body>,
+    next: Next,
+) -> Response {
+    let Some(allowlist) = state.ip_allowlist.as_ref() else {
+        return next.run(request).await;
+    };
+
+    if resolve_client_ip(&request, state.trust_proxy_headers)
+        .is_some_and(|client_ip| allowlist.contains(client_ip))
+    {
+        return next.run(request).await;
+    }
+
+    (
+        StatusCode::FORBIDDEN,
+        Json(ErrorResponse {
+            error: "forbidden".to_string(),
+        }),
+    )
+        .into_response()
+}
+
+async fn auth_middleware(
+    State(state): State<Arc<AppState>>,
+    request: Request<axum::body::Body>,
+    next: Next,
+) -> Response {
+    if state.auth.mode != AuthMode::SsoHeader {
+        return next.run(request).await;
+    }
+
+    if state.auth.is_anonymous_path(request.uri().path()) {
+        return next.run(request).await;
+    }
+
+    if extract_non_empty_header(&request, &state.auth.user_header).is_none() {
+        return unauthorized_error().into_response();
+    }
+
+    if let Some(groups_header) = &state.auth.groups_header {
+        let _ = extract_non_empty_header(&request, groups_header);
+    }
+
+    next.run(request).await
 }
 
 async fn cache_get<T: DeserializeOwned>(
@@ -440,12 +667,74 @@ async fn main() {
     if ready_require_cache {
         println!("Readiness strict mode enabled: cache must be available when REDIS_URL is set.");
     }
+    let trust_proxy_headers = parse_bool_env("TRUST_PROXY_HEADERS", false);
+    let ip_allowlist = match std::env::var("IP_ALLOWLIST") {
+        Ok(raw) if !raw.trim().is_empty() => match parse_ip_allowlist(&raw) {
+            Ok(allowlist) => {
+                println!(
+                    "IP allowlist enabled ({} entries), trust_proxy_headers={trust_proxy_headers}",
+                    allowlist.networks.len()
+                );
+                Some(allowlist)
+            }
+            Err(error) => {
+                eprintln!("Invalid IP_ALLOWLIST: {error}");
+                return;
+            }
+        },
+        _ => None,
+    };
+    let auth_mode = match std::env::var("AUTH_MODE") {
+        Ok(raw) => match parse_auth_mode(&raw) {
+            Ok(mode) => mode,
+            Err(error) => {
+                eprintln!("{error}");
+                return;
+            }
+        },
+        Err(_) => AuthMode::None,
+    };
+    let auth_user_header = match parse_header_name_env("AUTH_USER_HEADER", "x-auth-request-email") {
+        Ok(header_name) => header_name,
+        Err(error) => {
+            eprintln!("{error}");
+            return;
+        }
+    };
+    let auth_groups_header = match parse_optional_header_name_env("AUTH_GROUPS_HEADER") {
+        Ok(header_name) => header_name,
+        Err(error) => {
+            eprintln!("{error}");
+            return;
+        }
+    };
+    let anonymous_paths_raw = std::env::var("AUTH_ANONYMOUS_PATHS")
+        .unwrap_or_else(|_| DEFAULT_AUTH_ANONYMOUS_PATHS.to_string());
+    let anonymous_path_prefixes = parse_path_prefixes(&anonymous_paths_raw);
+    if anonymous_path_prefixes.is_empty() {
+        eprintln!("AUTH_ANONYMOUS_PATHS is empty after parsing.");
+        return;
+    }
+    if auth_mode == AuthMode::SsoHeader {
+        println!(
+            "SSO header auth enabled: user_header={}, groups_header={:?}",
+            auth_user_header, auth_groups_header
+        );
+    }
 
     let shared_state = Arc::new(AppState {
         pool,
         cache: redis_cache,
         cache_ttl_seconds,
         ready_require_cache,
+        ip_allowlist,
+        trust_proxy_headers,
+        auth: AuthConfig {
+            mode: auth_mode,
+            user_header: auth_user_header,
+            groups_header: auth_groups_header,
+            anonymous_path_prefixes,
+        },
         metrics: ApiMetrics::default(),
     });
 
@@ -462,6 +751,14 @@ async fn main() {
         .route("/docs/", get(swagger_ui))
         .layer(axum::middleware::from_fn_with_state(
             shared_state.clone(),
+            auth_middleware,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            shared_state.clone(),
+            ip_allowlist_middleware,
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            shared_state.clone(),
             request_metrics_middleware,
         ))
         .layer(CorsLayer::permissive())
@@ -469,7 +766,12 @@ async fn main() {
 
     let listener = TcpListener::bind("0.0.0.0:3202").await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
 
 #[utoipa::path(
@@ -1079,11 +1381,17 @@ async fn swagger_ui() -> Html<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_search_candidates, build_search_term, hiragana_to_katakana, is_truthy,
-        katakana_to_hiragana, normalize_search_input, resolve_cache_state, ApiMetrics, SearchMode,
+        build_search_candidates, build_search_term, extract_forwarded_for_ip,
+        extract_non_empty_header, hiragana_to_katakana, is_truthy, katakana_to_hiragana,
+        normalize_search_input, parse_auth_mode, parse_ip_allowlist, parse_path_prefixes,
+        path_matches_prefix, resolve_cache_state, resolve_client_ip, ApiMetrics, AuthConfig,
+        AuthMode, SearchMode,
     };
-    use axum::http::StatusCode;
-    use std::time::Duration;
+    use axum::{extract::connect_info::ConnectInfo, http::StatusCode};
+    use std::{
+        net::{IpAddr, Ipv4Addr, SocketAddr},
+        time::Duration,
+    };
 
     #[test]
     fn build_search_term_exact() {
@@ -1184,5 +1492,109 @@ mod tests {
             resolve_cache_state(true, false, true),
             Err("cache not ready")
         );
+    }
+
+    #[test]
+    fn parse_ip_allowlist_accepts_ip_and_cidr() {
+        let allowlist =
+            parse_ip_allowlist("203.0.113.1,10.0.0.0/24").expect("allowlist must parse");
+        assert!(allowlist.contains(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 1))));
+        assert!(allowlist.contains(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 8))));
+        assert!(!allowlist.contains(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 2))));
+    }
+
+    #[test]
+    fn parse_ip_allowlist_rejects_invalid_entry() {
+        let result = parse_ip_allowlist("10.0.0.0/24,not-an-ip");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn extract_forwarded_for_uses_first_entry() {
+        let ip = extract_forwarded_for_ip("198.51.100.10, 10.0.0.1").expect("ip must exist");
+        assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(198, 51, 100, 10)));
+    }
+
+    #[test]
+    fn resolve_client_ip_prefers_proxy_headers_when_enabled() {
+        let mut request = axum::http::Request::builder()
+            .header("x-forwarded-for", "198.51.100.10, 10.0.0.1")
+            .body(axum::body::Body::empty())
+            .expect("request must build");
+        request
+            .extensions_mut()
+            .insert(ConnectInfo(SocketAddr::from(([127, 0, 0, 1], 3202))));
+
+        let ip = resolve_client_ip(&request, true).expect("ip must be resolved");
+        assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(198, 51, 100, 10)));
+    }
+
+    #[test]
+    fn resolve_client_ip_uses_socket_addr_when_proxy_headers_disabled() {
+        let mut request = axum::http::Request::builder()
+            .body(axum::body::Body::empty())
+            .expect("request must build");
+        request
+            .extensions_mut()
+            .insert(ConnectInfo(SocketAddr::from(([127, 0, 0, 1], 3202))));
+
+        let ip = resolve_client_ip(&request, false).expect("ip must be resolved");
+        assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+    }
+
+    #[test]
+    fn parse_auth_mode_accepts_supported_values() {
+        assert_eq!(parse_auth_mode("none"), Ok(AuthMode::None));
+        assert_eq!(parse_auth_mode("sso_header"), Ok(AuthMode::SsoHeader));
+        assert_eq!(parse_auth_mode("SSO_HEADER"), Ok(AuthMode::SsoHeader));
+    }
+
+    #[test]
+    fn parse_auth_mode_rejects_unknown_value() {
+        assert!(parse_auth_mode("saml").is_err());
+    }
+
+    #[test]
+    fn parse_path_prefixes_normalizes_entries() {
+        let prefixes = parse_path_prefixes("health,/docs,/docs,/openapi.json");
+        assert_eq!(prefixes, vec!["/health", "/docs", "/openapi.json"]);
+    }
+
+    #[test]
+    fn path_matches_prefix_honors_segment_boundary() {
+        assert!(path_matches_prefix("/docs", "/docs"));
+        assert!(path_matches_prefix("/docs/index.html", "/docs"));
+        assert!(!path_matches_prefix("/docs2", "/docs"));
+    }
+
+    #[test]
+    fn auth_config_matches_anonymous_paths() {
+        let config = AuthConfig {
+            mode: AuthMode::SsoHeader,
+            user_header: "x-auth-request-email"
+                .parse()
+                .expect("header name must parse"),
+            groups_header: None,
+            anonymous_path_prefixes: vec!["/health".to_string(), "/docs".to_string()],
+        };
+        assert!(config.is_anonymous_path("/health"));
+        assert!(config.is_anonymous_path("/docs/swagger"));
+        assert!(!config.is_anonymous_path("/postal_codes/1000001"));
+    }
+
+    #[test]
+    fn extract_non_empty_header_trims_whitespace() {
+        let request = axum::http::Request::builder()
+            .header("x-auth-request-email", "  user@example.com ")
+            .body(axum::body::Body::empty())
+            .expect("request must build");
+        let value = extract_non_empty_header(
+            &request,
+            &"x-auth-request-email"
+                .parse()
+                .expect("header name must parse"),
+        )
+        .expect("value must be present");
+        assert_eq!(value, "user@example.com");
     }
 }
