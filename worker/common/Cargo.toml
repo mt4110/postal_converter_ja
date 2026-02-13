@@ -14,8 +14,5 @@ dotenv = "0.15"
 tokio = { version = "1.40", features = ["full"] }
 utoipa = "5"
 
-[dev-dependencies]
-serial_test = "3"
-
 [lib]
 path = "src/lib.rs"
