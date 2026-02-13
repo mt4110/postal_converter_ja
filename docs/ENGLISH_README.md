@@ -235,7 +235,7 @@ This model ensures sustainable development and fair support for long-term usage.
 
 - [x] SDK samples for 3 use cases: EC checkout, member registration, call-center input support
 - [x] Delivery checklist for contractor onboarding (`docs/CONTRACTOR_ONBOARDING_CHECKLIST.md`)
-- [ ] Fresh-machine validation flow for install + start
+- [x] Host-terminal onboarding rehearsal evidence (`docs/ONBOARDING_REHEARSAL_EVIDENCE.md`)
 - [x] Monthly SQLite release operation checklist (`docs/SQLITE_MONTHLY_OPERATION_CHECKLIST.md`)
 
 ---

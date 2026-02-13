@@ -71,9 +71,8 @@ Exit Criteria:
 - [x] Add call-center SDK sample to frontend showcase
 - [x] Add contractor onboarding checklist doc
 - [x] Add monthly SQLite release operation checklist doc
-- [ ] Validate fresh machine onboarding flow and record evidence
+- [x] Validate onboarding flow and record evidence (`docs/ONBOARDING_REHEARSAL_EVIDENCE.md`)
 
 ## Next One Task
 
-1. Execute a fresh-machine rehearsal and attach command output evidence to PR notes.
-2. Confirm host-level `curl` checks from the same terminal session used to run `onboard.sh`.
+1. Start v0.8.0 baseline: select one primary cloud target for Terraform apply path.

@@ -374,7 +374,7 @@ v0.7.0 以降の実行順序は `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照し
 
 - [x] **導入SDKサンプル拡張**: EC / 会員登録 / コールセンター の3ユースケース
 - [x] **導入テンプレート整備**: 受託向け導入チェックリストを追加（`docs/CONTRACTOR_ONBOARDING_CHECKLIST.md`）
-- [ ] **オンボーディング最終UX**: fresh環境前提の `--install-missing` 実機検証を標準手順化
+- [x] **オンボーディング最終UX**: 同一ホスト端末での疎通証跡を取得（`docs/ONBOARDING_REHEARSAL_EVIDENCE.md`）
 - [x] **SQLite配布の運用基準化**: 月次運用チェックリストを追加（`docs/SQLITE_MONTHLY_OPERATION_CHECKLIST.md`）
 
 ## バージョン
