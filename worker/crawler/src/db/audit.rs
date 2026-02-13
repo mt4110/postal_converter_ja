@@ -1,4 +1,3 @@
-use chrono::TimeZone;
 use deadpool_postgres::Pool as PgPool;
 use mysql_async::{params, prelude::Queryable, Pool as MySqlPool};
 use tokio_postgres::Error as PgError;
@@ -27,12 +26,8 @@ pub fn build_data_version(batch_timestamp: chrono::NaiveDateTime) -> String {
     )
 }
 
-fn local_naive_to_utc(batch_timestamp: chrono::NaiveDateTime) -> chrono::DateTime<chrono::Utc> {
-    chrono::Local
-        .from_local_datetime(&batch_timestamp)
-        .earliest()
-        .unwrap_or_else(|| chrono::Local.from_utc_datetime(&batch_timestamp))
-        .with_timezone(&chrono::Utc)
+fn naive_utc_to_utc(batch_timestamp: chrono::NaiveDateTime) -> chrono::DateTime<chrono::Utc> {
+    batch_timestamp.and_utc()
 }
 
 pub async fn ensure_audit_table_postgres(pool: &PgPool) -> Result<(), PgError> {
@@ -112,7 +107,7 @@ pub async fn compute_postgres_diff_counts(
     batch_timestamp: chrono::NaiveDateTime,
 ) -> Result<(i64, i64, i64), PgError> {
     let client = pool.get().await.expect("Failed to get client");
-    let batch_timestamp_utc = local_naive_to_utc(batch_timestamp);
+    let batch_timestamp_utc = naive_utc_to_utc(batch_timestamp);
 
     let touched_count: i64 = client
         .query_one(
@@ -146,7 +141,7 @@ pub async fn insert_audit_postgres(
     record: &DataUpdateAuditRecord,
 ) -> Result<(), PgError> {
     let client = pool.get().await.expect("Failed to get client");
-    let batch_timestamp_utc = local_naive_to_utc(record.batch_timestamp);
+    let batch_timestamp_utc = naive_utc_to_utc(record.batch_timestamp);
     client
         .execute(
             "INSERT INTO data_update_audits (

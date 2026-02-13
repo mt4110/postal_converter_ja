@@ -29,12 +29,46 @@ async fn invalidate_redis_cache() {
         }
     };
 
-    let result: redis::RedisResult<()> = conn.flushdb().await;
-    if let Err(e) = result {
-        eprintln!("Failed to flush Redis cache: {e}");
-    } else {
-        tlog!("Redis cache invalidated.");
+    let mut cursor: u64 = 0;
+    let mut deleted = 0usize;
+
+    loop {
+        let scan_result: redis::RedisResult<(u64, Vec<String>)> = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg("postal:*")
+            .arg("COUNT")
+            .arg(500)
+            .query_async(&mut conn)
+            .await;
+
+        let (next_cursor, keys) = match scan_result {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Failed to scan Redis cache keys: {e}");
+                return;
+            }
+        };
+
+        if !keys.is_empty() {
+            let result: redis::RedisResult<()> = conn.del(&keys).await;
+            if let Err(e) = result {
+                eprintln!("Failed to delete Redis cache keys: {e}");
+                return;
+            }
+            deleted += keys.len();
+        }
+
+        if next_cursor == 0 {
+            break;
+        }
+        cursor = next_cursor;
     }
+
+    tlog!(
+        "Redis cache invalidated for postal:* (deleted {} keys).",
+        deleted
+    );
 }
 
 #[tokio::main]
@@ -68,7 +102,7 @@ async fn main() {
     loop {
         tlog!("Starting crawler cycle...");
         let run_started_at = chrono::Utc::now();
-        let batch_now = chrono::Local::now().naive_local();
+        let batch_now = chrono::Utc::now().naive_utc();
         let batch_timestamp = batch_now
             .with_nanosecond(0)
             .expect("failed to normalize batch timestamp");
