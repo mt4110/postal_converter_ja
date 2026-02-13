@@ -1,6 +1,6 @@
 # Postal Converter JA – Automatic Japanese Postal Code Updater
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
 **Postal Converter JA** is a fully automated system that fetches and updates the latest Japanese postal code data from Japan Post.  

@@ -17,6 +17,8 @@ jobs:
       # Rust toolchain
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.91.1
+        with:
+          components: rustfmt, clippy
 
       # ---- API ----
       - name: Cargo fmt (API)
@@ -53,6 +55,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.91.1
+        with:
+          components: rustfmt
 
       - name: Start Databases
         run: |
@@ -82,7 +86,7 @@ jobs:
         env:
           MYSQL_DATABASE_URL: mysql://mysql_user:u_password@127.0.0.1:3204/zip_code_db
           POSTGRES_DATABASE_URL: postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db
-        run: cargo test -p common --test db_integration --locked -- --nocapture
+        run: cargo test -p common --test db_integration --locked -- --nocapture --test-threads=1
 
       - name: Stop Databases
         if: always()

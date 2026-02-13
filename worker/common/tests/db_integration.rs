@@ -19,6 +19,7 @@ fn build_city_id(prefix: char, seed: u64) -> String {
 }
 
 #[tokio::test]
+#[serial_test::serial]
 async fn postgres_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("POSTGRES_DATABASE_URL").is_err() {
         eprintln!("skip postgres test: POSTGRES_DATABASE_URL is not set");
@@ -72,6 +73,7 @@ async fn postgres_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error:
 }
 
 #[tokio::test]
+#[serial_test::serial]
 async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("MYSQL_DATABASE_URL").is_err() {
         eprintln!("skip mysql test: MYSQL_DATABASE_URL is not set");
@@ -136,6 +138,9 @@ async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Er
         },
     )
     .await?;
+
+    conn.disconnect().await?;
+    pool.disconnect().await?;
 
     Ok(())
 }

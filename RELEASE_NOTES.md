@@ -1,4 +1,4 @@
-# v0.2.0 (Beta) - Enhanced Developer Experience & Robustness 🚀
+# v0.6.0 (Beta) - Enhanced Developer Experience & Robustness 🚀
 
 ## 概要
 
@@ -23,7 +23,7 @@
   - 実行順序に関する注記を追加し、ユーザーが迷わないように配慮しました。
 - **Main README**:
   - ロードマップを更新し、完了したタスク（CI/CD 構築など）をマークしました。
-  - バージョンを **v0.2.0 (Beta)** に更新しました。
+  - バージョンを **v0.6.0 (Beta)** に更新しました。
 
 ### 3. CI/CD パイプライン強化 🛠️
 
