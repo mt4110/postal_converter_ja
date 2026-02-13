@@ -57,7 +57,7 @@ checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
 
 [[package]]
 name = "api_service"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "axum",
  "common",
@@ -334,7 +334,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "deadpool-postgres",
  "dotenv",
@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "crawler_service"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "common",

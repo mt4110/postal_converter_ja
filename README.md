@@ -1,6 +1,6 @@
 # 郵便番号自動最新化システム (Postal Converter JA)
 
-![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
 English README: [ENGLISH_README.md](./docs/ENGLISH_README.md)
@@ -285,6 +285,7 @@ nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 
 - EC 配送先自動補完フォーム
 - 会員登録フォーム（郵便番号検索 + 住所キーワード検索）
+- コールセンター入力支援フォーム（通話中の候補提示）
 
 SDK 実装サンプルは `frontend/src/lib/postal-sdk.ts` を参照してください。
 
@@ -357,20 +358,28 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 
 ## ロードマップ (TODO)
 
-詳細な実行計画（優先度・日付入り）は `docs/SALES_READINESS_PLAN_2026Q2.md` を参照してください。
+詳細な実行計画（優先度・日付入り）は `docs/SALES_READINESS_PLAN_2026Q2.md` を参照してください。  
+v0.7.0 以降の実行順序は `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照してください。
 
 - [x] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
 - [x] **ランチャーの UX 改善**: 実行順序の制御と視覚的フィードバック
-- [ ] **環境構築の完全自動化**: Nix + Docker 前提のインストールとセットアップ
+- [x] **環境構築の自動化 (v0.6)**: `scripts/setup_nix_docker.sh` + `scripts/onboard.sh` で導入を標準化
 - [ ] **マルチプラットフォーム デプロイ基盤**: GitHub Actions + Terraform による環境展開（クラウド別ターゲット対応）
-- [ ] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
+- [x] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
 - [x] **Docker イメージの軽量化**: マルチステージビルドの最適化（API/Crawler）
 - [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize 含む）
 - [x] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
 
+### v0.7.0 フォーカス（導入加速）
+
+- [x] **導入SDKサンプル拡張**: EC / 会員登録 / コールセンター の3ユースケース
+- [x] **導入テンプレート整備**: 受託向け導入チェックリストを追加（`docs/CONTRACTOR_ONBOARDING_CHECKLIST.md`）
+- [x] **オンボーディング最終UX**: 同一ホスト端末での疎通証跡を取得（`docs/ONBOARDING_REHEARSAL_EVIDENCE.md`）
+- [x] **SQLite配布の運用基準化**: 月次運用チェックリストを追加（`docs/SQLITE_MONTHLY_OPERATION_CHECKLIST.md`）
+
 ## バージョン
 
-**v0.6.0 (Beta)** - Enhanced Developer Experience & Robustness
+**v0.7.0 (Beta)** - Sales-ready onboarding kit
 
 ## 貢献について (Contributing)
 
