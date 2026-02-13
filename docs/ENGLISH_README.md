@@ -228,7 +228,7 @@ This model ensures sustainable development and fair support for long-term usage.
 - [x] Lightweight Docker images (multi-stage for API/Crawler)
 - [x] OpenAPI/Swagger documentation
 - [x] Onboarding automation (`scripts/setup_nix_docker.sh`, `scripts/onboard.sh`)
-- [ ] Multi-platform deployment baseline (GitHub Actions + Terraform)
+- [ ] Deployment baseline (v0.8): AWS-first with GitHub Actions + Terraform
 - [ ] Kubernetes integration (Helm/Kustomize)
 
 ### v0.7.0 Focus (Sales-ready onboarding)

@@ -364,7 +364,7 @@ v0.7.0 以降の実行順序は `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照し
 - [x] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
 - [x] **ランチャーの UX 改善**: 実行順序の制御と視覚的フィードバック
 - [x] **環境構築の自動化 (v0.6)**: `scripts/setup_nix_docker.sh` + `scripts/onboard.sh` で導入を標準化
-- [ ] **マルチプラットフォーム デプロイ基盤**: GitHub Actions + Terraform による環境展開（クラウド別ターゲット対応）
+- [ ] **デプロイ基盤 (v0.8)**: GitHub Actions + Terraform の AWS 先行運用を確立（その後マルチクラウド展開）
 - [x] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
 - [x] **Docker イメージの軽量化**: マルチステージビルドの最適化（API/Crawler）
 - [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize 含む）

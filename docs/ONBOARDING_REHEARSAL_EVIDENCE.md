@@ -1,7 +1,7 @@
 # Onboarding Rehearsal Evidence
 
 - Executed at (JST): 2026-02-13 13:51:44 JST
-- Branch: codex/feature/v0.7.0
+- Branch: feature/v0.7.0
 - Commit: 3176cc4
 
 ## 1) Start Command
