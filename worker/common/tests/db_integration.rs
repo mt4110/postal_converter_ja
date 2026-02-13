@@ -18,7 +18,7 @@ fn build_city_id(prefix: char, seed: u64) -> String {
     format!("{prefix}{:09}", seed % 1_000_000_000)
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "current_thread")]
 async fn postgres_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("POSTGRES_DATABASE_URL").is_err() {
         eprintln!("skip postgres test: POSTGRES_DATABASE_URL is not set");
@@ -71,7 +71,7 @@ async fn postgres_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "current_thread")]
 async fn mysql_roundtrip_insert_and_query() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("MYSQL_DATABASE_URL").is_err() {
         eprintln!("skip mysql test: MYSQL_DATABASE_URL is not set");
