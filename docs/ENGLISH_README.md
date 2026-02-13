@@ -79,6 +79,19 @@ This launches:
 | MySQL      | **3204** |
 | PostgreSQL | **3205** |
 
+By default, Docker **named volumes** are used (recommended for stable local behavior).  
+Use bind mounts only when needed for local inspection:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+```
+
+If local DB state is broken (e.g. `binlog.index Permission denied`), reset volumes first:
+
+```bash
+docker compose down -v
+```
+
 Optional Redis cache:
 
 ```bash

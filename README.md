@@ -132,6 +132,19 @@ docker ps
 
 MySQL（ポート 3204）と PostgreSQL（ポート 3205）の両方が起動します。
 
+デフォルトは **named volume**（推奨）です。  
+ホストのディレクトリを直接マウントしたい場合のみ、`docker-compose.local.yml` を重ねます:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+```
+
+`binlog.index Permission denied` などでローカルDBが壊れた場合は、まず初期化してください:
+
+```bash
+docker compose down -v
+```
+
 Redis キャッシュを使う場合は、以下で Redis も起動できます（オプション）:
 
 ```bash
