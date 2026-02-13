@@ -8,7 +8,7 @@ pub fn build_pg_bulk_insert_query<'a>(
     Vec<&'a (dyn tokio_postgres::types::ToSql + Sync + 'a)>,
 ) {
     let mut query = format!(
-        "INSERT INTO {} ({}, updated_at) VALUES ",
+        "INSERT INTO {} ({}, created_at, updated_at) VALUES ",
         table_name,
         columns.join(", ")
     );
@@ -24,6 +24,8 @@ pub fn build_pg_bulk_insert_query<'a>(
         for j in 0..row_len {
             row_placeholders.push(format!("${}", i * row_len + j + 1));
         }
+        // For created_at (shared timestamp)
+        row_placeholders.push(format!("'{}'::TIMESTAMP", timestamp_literal));
         // For updated_at (shared timestamp)
         row_placeholders.push(format!("'{}'::TIMESTAMP", timestamp_literal));
 

@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+.idea
+
+**/target
+**/node_modules
+
+storage/mysql/mysql_data
+storage/postgres/postgres_data
+storage/redis
+storage/mongodb
+
+artifacts/sqlite/*.sqlite3
+worker/crawler/temp_assets
+
+.DS_Store

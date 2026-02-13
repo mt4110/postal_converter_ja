@@ -1,35 +1,43 @@
-# Dockerfile for minimal Rust setup
-FROM rust:1.83-alpine
+# syntax=docker/dockerfile:1.7
 
-RUN apk add --no-cache curl musl-dev gcc clang g++ make pkgconfig openssl-dev \
-    && curl -sfS https://dotenvx.sh/install.sh | sh
+ARG RUST_VERSION=1.91.1
 
-ENV LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/lib
-ENV PATH="/root/.dotenvx/bin:$PATH"
-# 作業ディレクトリを作成
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    clang \
+    libclang-dev \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/worker
+COPY worker ./worker
+
+WORKDIR /workspace/worker/worker
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo build --release --locked -p crawler_service --bin crawler
+
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --create-home appuser
+
 WORKDIR /app
+COPY --from=builder /workspace/worker/worker/target/release/crawler /usr/local/bin/crawler
+COPY --from=builder /workspace/worker/worker/common /app/common
+RUN mkdir -p /app/temp_assets && chown -R appuser:appuser /app
 
-COPY ./worker/crawler/.env.unencrypted /app/.env
-COPY ./worker/crawler/Cargo.toml /app/
-COPY ./worker/crawler/src /app/src
-COPY ./worker/common /app/common
+ENV ZIP_CODE_URL=https://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip
+ENV CRAWLER_INTERVAL_SECONDS=86400
+ENV CRAWLER_RUN_ONCE=false
+ENV DATABASE_TYPE=postgres
 
-# common のパスを "./common" に書き換える
-RUN sed -i 's|\.\./common|./common|' /app/Cargo.toml
-
-# 依存関係をフェッチ
-RUN dotenvx run -- cargo fetch
-
-# 依存関係をビルド（キャッシュ有効化のため）
-RUN dotenvx cargo build --release --bin crawler
-
-# 実行運用: コメントを外すと実行されます
-CMD ["dotenvx", "cargo", "run", "--release", "--bin", "crawler"]
-
-# 運用方法のコメント:
-# ビルド運用（SQLxキャッシュとビルドのみ実行）:
-# docker build -t crawler-image .
-#
-# 実行運用（ビルド済みバイナリを実行）:
-# docker run -e MYSQL_DATABASE_URL=<mysql_url> -e POSTGRES_DATABASE_URL=<postgres_url> crawler-image
+USER appuser
+CMD ["crawler"]

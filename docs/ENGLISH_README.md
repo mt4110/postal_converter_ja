@@ -47,7 +47,7 @@ You will need:
 
 - **Nix** (for development environment)
 - **Docker** (for running the databases)
-- **Mise** (optional, recommended for Node.js/Yarn version management)
+- **Note**: Node.js / Yarn / Go / Rust are provided by `nix develop`
 
 ### Install Nix
 
@@ -79,6 +79,12 @@ This launches:
 | MySQL      | **3204** |
 | PostgreSQL | **3205** |
 
+Optional Redis cache:
+
+```bash
+docker compose --profile cache up -d redis
+```
+
 ### 2. Create Environment Files
 
 ```bash
@@ -94,14 +100,43 @@ Set the database type in `.env`:
 ```bash
 DATABASE_TYPE=postgres   # default
 # DATABASE_TYPE=mysql
+# DATABASE_TYPE=sqlite
+SQLITE_DATABASE_PATH=storage/sqlite/postal_codes.sqlite3
+
+# Optional Redis cache
+REDIS_URL=redis://127.0.0.1:3206
+REDIS_CACHE_TTL_SECONDS=300
 ```
+
+> [!NOTE]
+> `DATABASE_TYPE=sqlite` is for API read-only PoC. Direct SQLite writes from crawler are not supported.
+
+### SQLite DB Build (PoC)
+
+Generate SQLite DB from PostgreSQL data:
+
+```bash
+nix develop --command bash -lc "./scripts/build_sqlite_from_postgres.sh"
+```
+
+To package distributable SQLite artifacts (DB + checksum + manifest):
+
+```bash
+nix develop --command bash -lc "./scripts/package_sqlite_release.sh"
+```
+
+Generated files are placed in `artifacts/sqlite/`.
 
 ### 3. Run the Crawler (initial import + scheduled updates)
 
 ```bash
-cd worker/crawler
-nix develop
-cargo run --release --bin crawler
+nix develop --command bash -lc "cd worker/crawler && cargo run --release --bin crawler"
+```
+
+Run only one cycle (for CI/batch jobs):
+
+```bash
+nix develop --command bash -lc "cd worker/crawler && CRAWLER_RUN_ONCE=true cargo run --release --bin crawler"
 ```
 
 On first run:
@@ -109,13 +144,12 @@ On first run:
 - Downloads official Japan Post CSVs
 - Inserts ~120,000 records
 - Sets up daily auto-update task
+- If `REDIS_URL` is set, Redis cache is invalidated after update
 
 ### 4. Run the API Server
 
 ```bash
-cd worker/api
-nix develop
-cargo run --release --bin api
+nix develop --command bash -lc "cd worker/api && cargo run --release --bin api"
 ```
 
 API starts at: **http://localhost:3202**
@@ -123,9 +157,7 @@ API starts at: **http://localhost:3202**
 ### 5. Run Frontend
 
 ```bash
-cd frontend
-yarn install
-yarn dev
+nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 ```
 
 Demo available at: **http://localhost:3203**
@@ -137,6 +169,9 @@ Demo available at: **http://localhost:3203**
 Full API endpoints and examples:  
 👉 [API_SPEC.md](../API_SPEC.md) _(Note: Currently in Japanese only. Please use a translation tool.)_
 
+OpenAPI JSON: `http://localhost:3202/openapi.json`
+Swagger UI: `http://localhost:3202/docs`
+
 ## 🐛 Troubleshooting
 
 See:  
@@ -146,6 +181,8 @@ See:
 
 Docs for developers:  
 👉 [DEVELOPMENT.md](./DEVELOPMENT.md) _(Note: Currently in Japanese only.)_
+👉 [SQLITE_READONLY_POC.md](./SQLITE_READONLY_POC.md)
+👉 `.github/workflows/sqlite-release.yml` (manual workflow for SQLite release artifacts)
 
 ---
 
@@ -173,10 +210,10 @@ This model ensures sustainable development and fair support for long-term usage.
 
 ## 🗺 Roadmap
 
-- [ ] CI/CD (GitHub Actions)
+- [x] CI/CD (GitHub Actions)
 - [ ] Integration tests for MySQL/PostgreSQL
-- [ ] Lightweight Docker images
-- [ ] OpenAPI/Swagger documentation
+- [x] Lightweight Docker images (multi-stage for API/Crawler)
+- [x] OpenAPI/Swagger documentation
 
 ---
 

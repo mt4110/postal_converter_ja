@@ -29,10 +29,15 @@ mysql_async = { version = "0.34", default-features = false, features = [
 num_cpus = "1.16"
 chrono = { version = "0.4", features = ["serde"] }
 encoding_rs = "0.8.35"
+redis = { version = "0.32", features = ["tokio-comp"] }
 
 [[bin]]
 name = "crawler"
 path = "src/main.rs"
+
+[[bin]]
+name = "rollback"
+path = "src/bin/rollback.rs"
 
 
 [lib]

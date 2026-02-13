@@ -16,7 +16,7 @@ jobs:
 
       # Rust toolchain
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.91.1
 
       # ---- API ----
       - name: Cargo fmt (API)
@@ -25,11 +25,11 @@ jobs:
 
       - name: Cargo clippy (API)
         working-directory: worker/api
-        run: cargo clippy --all-features -- -D warnings
+        run: cargo clippy --all-features --locked -- -D warnings
 
       - name: Cargo test (API)
         working-directory: worker/api
-        run: cargo test --all-features
+        run: cargo test --all-features --locked
 
       # ---- Crawler ----
       - name: Cargo fmt (Crawler)
@@ -38,11 +38,55 @@ jobs:
 
       - name: Cargo clippy (Crawler)
         working-directory: worker/crawler
-        run: cargo clippy --all-features -- -D warnings
+        run: cargo clippy --all-features --locked -- -D warnings
 
       - name: Cargo test (Crawler)
         working-directory: worker/crawler
-        run: cargo test --all-features
+        run: cargo test --all-features --locked
+
+  integration-db:
+    name: DB Integration Test (MySQL + PostgreSQL)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.91.1
+
+      - name: Start Databases
+        run: |
+          mkdir -p storage/mysql/mysql_data storage/postgres/postgres_data
+          docker compose up -d mysql postgres
+
+      - name: Wait for Databases
+        run: |
+          for i in $(seq 1 60); do
+            if docker exec mysql_container mysqladmin ping -uroot -pmysql_root --silent; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec mysql_container mysqladmin ping -uroot -pmysql_root --silent
+
+          for i in $(seq 1 60); do
+            if docker exec postgres_container pg_isready -U postgres -d zip_code_db; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec postgres_container pg_isready -U postgres -d zip_code_db
+
+      - name: Run DB Integration Tests
+        working-directory: worker
+        env:
+          MYSQL_DATABASE_URL: mysql://mysql_user:u_password@127.0.0.1:3204/zip_code_db
+          POSTGRES_DATABASE_URL: postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db
+        run: cargo test -p common --test db_integration --locked -- --nocapture
+
+      - name: Stop Databases
+        if: always()
+        run: docker compose down -v
 
   frontend:
     name: Frontend Lint
@@ -75,7 +119,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24.0"
+          go-version: "1.24.10"
 
       - name: Build Launcher
         working-directory: launcher

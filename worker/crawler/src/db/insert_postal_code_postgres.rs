@@ -153,7 +153,7 @@ pub async fn bulk_insert_async(
 pub async fn delete_old_records_postgres(
     pool: &PgPool,
     batch_timestamp: chrono::NaiveDateTime,
-) -> Result<(), PgError> {
+) -> Result<u64, PgError> {
     let timestamp_literal = batch_timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
     println!("Deleting records older than {}", timestamp_literal);
     let client = pool.get().await.expect("Failed to get client");
@@ -161,7 +161,7 @@ pub async fn delete_old_records_postgres(
         "DELETE FROM postal_codes WHERE updated_at < '{}'::TIMESTAMP",
         timestamp_literal
     );
-    client.execute(&query, &[]).await?;
+    let deleted_rows = client.execute(&query, &[]).await?;
     println!("Old records deleted from Postgres");
-    Ok(())
+    Ok(deleted_rows)
 }

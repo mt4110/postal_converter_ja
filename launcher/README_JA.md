@@ -14,14 +14,14 @@ Go 言語と Bubbletea を使用し、リッチな TUI（テキストユーザ�
 
 ```bash
 cd launcher
-go run main.go
+nix develop --command go run main.go
 ```
 
 または、ビルドして実行することも可能です：
 
 ```bash
 cd launcher
-go build -o postal-launcher
+nix develop --command go build -o postal-launcher
 ./postal-launcher
 ```
 

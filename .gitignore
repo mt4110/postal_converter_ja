@@ -5,7 +5,9 @@ GITHUB_STRATEGY.md
 artifacts/sqlite/*
 !artifacts/sqlite/.gitkeep
 docs/PRIVATE_LICENSE_LOCAL.md
+docs/ROADMAP_PRIVATE_v0.4_to_v1.0.md
 infra/terraform/**/.terraform/
 infra/terraform/**/*.tfstate
 infra/terraform/**/*.tfstate.*
 infra/terraform/**/tfplan
+docs/SALES_READINESS_PLAN_2026Q2.md

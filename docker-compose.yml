@@ -46,6 +46,17 @@ services:
       - postgres_data:/var/lib/postgresql
       - ./storage/postgres/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis_container
+    profiles:
+      - cache
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "3206:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   mysql_data:
     driver: local
@@ -59,3 +70,5 @@ volumes:
       type: none
       o: bind
       device: ./storage/postgres/postgres_data
+  redis_data:
+    driver: local

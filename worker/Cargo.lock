@@ -527,6 +527,7 @@ dependencies = [
  "mysql_async",
  "num_cpus",
  "rayon",
+ "redis",
  "reqwest",
  "serde",
  "tokio",

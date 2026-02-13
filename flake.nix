@@ -16,7 +16,7 @@
         };
         
         # Rust toolchain
-        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+        rustToolchain = pkgs.rust-bin.stable."1.91.1".default.override {
           extensions = [ "rust-src" "rust-analyzer" ];
         };
 
@@ -27,6 +27,9 @@
           curl
           wget
           go
+          nodejs_20
+          yarn
+          sqlite
         ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
           pkgs.libiconv
           pkgs.darwin.apple_sdk.frameworks.Security
