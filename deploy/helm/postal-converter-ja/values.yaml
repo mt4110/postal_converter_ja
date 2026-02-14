@@ -9,6 +9,18 @@ service:
   type: ClusterIP
   port: 3202
 
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+
+networkPolicy:
+  enabled: false
+  ingress:
+    from: []
+
 resources:
   requests:
     cpu: 100m

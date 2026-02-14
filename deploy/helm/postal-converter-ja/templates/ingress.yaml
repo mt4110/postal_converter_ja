@@ -1,0 +1,38 @@
+{{- if .Values.ingress.enabled }}
+{{- $fullName := include "postal-converter-ja.fullname" . }}
+{{- $servicePort := .Values.service.port }}
+{{- $hosts := required "ingress.hosts is required when ingress.enabled=true" .Values.ingress.hosts }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "postal-converter-ja.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  rules:
+    {{- range $hostEntry := $hosts }}
+    - host: {{ required "ingress.hosts[].host is required when ingress.enabled=true" $hostEntry.host | quote }}
+      http:
+        paths:
+          {{- range $pathEntry := $hostEntry.paths }}
+          - path: {{ default "/" $pathEntry.path | quote }}
+            pathType: {{ default "Prefix" $pathEntry.pathType }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $servicePort }}
+          {{- end }}
+    {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
