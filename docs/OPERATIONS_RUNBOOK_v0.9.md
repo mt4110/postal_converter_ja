@@ -10,7 +10,7 @@
 
 - SLI: `/ready` が 2xx を返した割合
 - SLO: 月次 99.9% 以上
-- Error budget: 43m 49s / 30日
+- Error budget: 43m 12s / 30日
 
 ### Latency
 
