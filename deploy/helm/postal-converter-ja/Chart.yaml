@@ -1,0 +1,6 @@
+apiVersion: v2
+name: postal-converter-ja
+description: Minimal Helm chart skeleton for Postal Converter JA API
+type: application
+version: 0.1.0
+appVersion: "0.8.2"

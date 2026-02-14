@@ -196,6 +196,8 @@ Docs for developers:
 👉 [DEVELOPMENT.md](./DEVELOPMENT.md) _(Note: Currently in Japanese only.)_
 👉 [SQLITE_READONLY_POC.md](./SQLITE_READONLY_POC.md)
 👉 `.github/workflows/sqlite-release.yml` (manual workflow for SQLite release artifacts)
+👉 Kubernetes deployment guide (v0.8.2): [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md)
+👉 Kubernetes skeletons: `deploy/helm/postal-converter-ja` (Helm / default), `deploy/k8s/base` (Kustomize), `deploy/argocd` (ArgoCD route)
 
 ---
 
@@ -229,14 +231,15 @@ This model ensures sustainable development and fair support for long-term usage.
 - [x] OpenAPI/Swagger documentation
 - [x] Onboarding automation (`scripts/setup_nix_docker.sh`, `scripts/onboard.sh`)
 - [x] Deployment baseline (v0.8): AWS-first with GitHub Actions + Terraform
-- [ ] Kubernetes integration (Helm/Kustomize)
+- [ ] Kubernetes integration (Helm/Kustomize/ArgoCD)
 
-### v0.8.0 Focus (Deployment baseline)
+### v0.8.x Focus (Deployment baseline)
 
 - [x] AWS-first IaC flow: GitHub Actions + Terraform `validate/plan/apply` for dev
 - [x] Environment split: `dev/stg/prod` AWS tfvars
 - [x] Offline verification route: `plan` works without AWS secret in skeleton mode
 - [x] Rollback runbook: `destroy` command path with evidence
+- [x] Kubernetes minimum skeleton: Helm + Kustomize + ArgoCD scaffolding
 
 ---
 

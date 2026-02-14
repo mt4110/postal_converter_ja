@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/mt4110/postal_converter_ja/api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 3202
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  DATABASE_TYPE: "postgres"
+  REDIS_CACHE_TTL_SECONDS: "300"
+  READY_REQUIRE_CACHE: "false"
+  TRUST_PROXY_HEADERS: "false"
+  AUTH_MODE: "none"
+  AUTH_USER_HEADER: "x-auth-request-email"
+  AUTH_GROUPS_HEADER: ""
+  AUTH_ANONYMOUS_PATHS: "/health,/ready,/openapi.json,/docs"
+
+secret:
+  create: true
+  POSTGRES_DATABASE_URL: "postgres://postgres:postgres_password@postgres:5432/zip_code_db"
+  MYSQL_DATABASE_URL: "mysql://mysql_user:u_password@mysql:3306/zip_code_db"
+  SQLITE_DATABASE_PATH: "/data/postal_codes.sqlite3"
+  REDIS_URL: "redis://redis:6379"
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+nameOverride: ""
+fullnameOverride: ""

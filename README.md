@@ -329,6 +329,8 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 👉 **CI/CD 設計についてはこちら:** [CI_DESIGN.md](./docs/CI_DESIGN.md)
 
 👉 **デプロイ骨格（GitHub Actions + Terraform）はこちら:** [DEPLOY.md](./docs/DEPLOY.md)
+👉 **Kubernetes 導入ガイド（v0.8.2）:** [KUBERNETES_DEPLOYMENT.md](./docs/KUBERNETES_DEPLOYMENT.md)
+👉 **Kubernetes 最小雛形:** `deploy/helm/postal-converter-ja` (Helm / デフォルト), `deploy/k8s/base` (Kustomize), `deploy/argocd` (ArgoCD route)
 👉 **v0.8 offline plan 証跡:** [TERRAFORM_OFFLINE_PLAN_EVIDENCE.md](./docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md)
 👉 **v0.8 rollback 証跡:** [TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md](./docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md)
 👉 **GitHub OIDC 設定スクリプト:** `./scripts/setup_github_oidc_vars.sh`
@@ -382,17 +384,17 @@ CI でも同等チェック（fmt/validate）を実行します。
 - [ ] **マルチプラットフォーム デプロイ基盤**: GitHub Actions + Terraform による環境展開（クラウド別ターゲット対応）
 - [x] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
 - [x] **Docker イメージの軽量化**: マルチステージビルドの最適化（API/Crawler）
-- [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize 含む）
+- [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize/ArgoCD 含む）
 - [x] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
 
-### v0.8.1 フォーカス（デプロイ基盤の仕上げ）
+### v0.8.x フォーカス（デプロイ基盤の仕上げ）
 
 - [x] **AWS先行IaC運用**: GitHub Actions + Terraform の `validate/plan/apply/destroy` を `dev` で実行可能化
 - [x] **環境分離**: `dev/stg/prod` の `aws.tfvars` を追加
 - [x] **オフライン検証経路**: AWSシークレット未設定でも `plan` を実行できる導線を整備
 - [x] **ロールバック運用**: `destroy` 手順を runbook 化し、実行証跡を追加
 - [ ] **マルチクラウド再拡張**: GCP/Azure ターゲットの再導入
-- [ ] **Kubernetes最小構成**: Helm/Kustomize 雛形の追加
+- [x] **Kubernetes最小構成**: Helm/Kustomize/ArgoCD 雛形の追加（`deploy/helm/postal-converter-ja`, `deploy/k8s/base`, `deploy/argocd`）
 
 ## バージョン
 

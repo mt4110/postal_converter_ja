@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postal-converter-ja
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mt4110/postal_converter_ja.git
+    targetRevision: main
+    path: deploy/helm/postal-converter-ja
+    helm:
+      releaseName: postal-converter-ja
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: postal-converter-ja
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
