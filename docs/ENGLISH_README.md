@@ -197,6 +197,7 @@ Docs for developers:
 👉 [SQLITE_READONLY_POC.md](./SQLITE_READONLY_POC.md)
 👉 `.github/workflows/sqlite-release.yml` (manual workflow for SQLite release artifacts)
 👉 Kubernetes deployment guide (v0.8.2): [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md)
+👉 Kubernetes adoption blueprint (existing platform ops): [K8S_ADOPTION_BLUEPRINT.md](./K8S_ADOPTION_BLUEPRINT.md)
 👉 Kubernetes skeletons: `deploy/helm/postal-converter-ja` (Helm / default), `deploy/k8s/base` (Kustomize), `deploy/argocd` (ArgoCD route)
 
 ---
