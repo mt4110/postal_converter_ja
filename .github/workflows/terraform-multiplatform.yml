@@ -195,7 +195,7 @@ jobs:
             echo "::error::tfvars not found: ${TFVARS}"
             exit 1
           fi
-          terraform apply -auto-approve -input=false -lock=false -var-file="${TFVARS}"
+          terraform apply -refresh=false -auto-approve -input=false -lock=false -var-file="${TFVARS}"
 
   terraform-destroy-aws:
     name: Terraform Destroy (aws)
