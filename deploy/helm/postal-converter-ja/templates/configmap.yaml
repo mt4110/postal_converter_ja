@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postal-converter-ja.fullname" . }}-config
+  labels:
+    {{- include "postal-converter-ja.labels" . | nindent 4 }}
+data:
+  DATABASE_TYPE: {{ .Values.config.DATABASE_TYPE | quote }}
+  REDIS_CACHE_TTL_SECONDS: {{ .Values.config.REDIS_CACHE_TTL_SECONDS | quote }}
+  READY_REQUIRE_CACHE: {{ .Values.config.READY_REQUIRE_CACHE | quote }}
+  TRUST_PROXY_HEADERS: {{ .Values.config.TRUST_PROXY_HEADERS | quote }}
+  AUTH_MODE: {{ .Values.config.AUTH_MODE | quote }}
+  AUTH_USER_HEADER: {{ .Values.config.AUTH_USER_HEADER | quote }}
+  AUTH_GROUPS_HEADER: {{ .Values.config.AUTH_GROUPS_HEADER | quote }}
+  AUTH_ANONYMOUS_PATHS: {{ .Values.config.AUTH_ANONYMOUS_PATHS | quote }}

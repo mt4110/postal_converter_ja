@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postal-converter-config
+  labels:
+    app.kubernetes.io/name: postal-converter-ja
+data:
+  DATABASE_TYPE: postgres
+  REDIS_CACHE_TTL_SECONDS: "300"
+  READY_REQUIRE_CACHE: "false"
+  TRUST_PROXY_HEADERS: "false"
+  AUTH_MODE: none
+  AUTH_USER_HEADER: x-auth-request-email
+  AUTH_GROUPS_HEADER: ""
+  AUTH_ANONYMOUS_PATHS: /health,/ready,/openapi.json,/docs
