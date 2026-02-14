@@ -20,6 +20,11 @@
           extensions = [ "rust-src" "rust-analyzer" ];
         };
 
+        # Keep local command UX as `terraform` while using OSS OpenTofu in nix shell.
+        terraformCompat = pkgs.writeShellScriptBin "terraform" ''
+          exec ${pkgs.opentofu}/bin/tofu "$@"
+        '';
+
         # System dependencies
         buildInputs = with pkgs; [
           openssl
@@ -30,6 +35,8 @@
           nodejs_20
           yarn
           sqlite
+          opentofu
+          terraformCompat
         ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
           pkgs.libiconv
           pkgs.darwin.apple_sdk.frameworks.Security

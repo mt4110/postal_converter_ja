@@ -1,6 +1,6 @@
 # Postal Converter JA – Automatic Japanese Postal Code Updater
 
-![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
 **Postal Converter JA** is a fully automated system that fetches and updates the latest Japanese postal code data from Japan Post.  
@@ -228,15 +228,15 @@ This model ensures sustainable development and fair support for long-term usage.
 - [x] Lightweight Docker images (multi-stage for API/Crawler)
 - [x] OpenAPI/Swagger documentation
 - [x] Onboarding automation (`scripts/setup_nix_docker.sh`, `scripts/onboard.sh`)
-- [ ] Multi-platform deployment baseline (GitHub Actions + Terraform)
+- [x] Deployment baseline (v0.8): AWS-first with GitHub Actions + Terraform
 - [ ] Kubernetes integration (Helm/Kustomize)
 
-### v0.7.0 Focus (Sales-ready onboarding)
+### v0.8.0 Focus (Deployment baseline)
 
-- [x] SDK samples for 3 use cases: EC checkout, member registration, call-center input support
-- [x] Delivery checklist for contractor onboarding (`docs/CONTRACTOR_ONBOARDING_CHECKLIST.md`)
-- [x] Host-terminal onboarding rehearsal evidence (`docs/ONBOARDING_REHEARSAL_EVIDENCE.md`)
-- [x] Monthly SQLite release operation checklist (`docs/SQLITE_MONTHLY_OPERATION_CHECKLIST.md`)
+- [x] AWS-first IaC flow: GitHub Actions + Terraform `validate/plan/apply` for dev
+- [x] Environment split: `dev/stg/prod` AWS tfvars
+- [x] Offline verification route: `plan` works without AWS secret in skeleton mode
+- [x] Rollback runbook: `destroy` command path with evidence
 
 ---
 

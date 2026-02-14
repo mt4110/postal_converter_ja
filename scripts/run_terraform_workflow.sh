@@ -6,16 +6,18 @@ REF=""
 ENVIRONMENT="dev"
 ACTION="plan"
 CONFIRM_APPLY=""
+CONFIRM_DESTROY=""
 WATCH=true
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/run_terraform_workflow.sh [--repo owner/repo] [--ref branch] --action validate|plan|apply [--environment dev|stg|prod] [--confirm-apply APPLY_AWS] [--no-watch]
+  ./scripts/run_terraform_workflow.sh [--repo owner/repo] [--ref branch] --action validate|plan|apply|destroy [--environment dev|stg|prod] [--confirm-apply APPLY_AWS] [--confirm-destroy DESTROY_AWS] [--no-watch]
 
 Examples:
-  ./scripts/run_terraform_workflow.sh --action plan --environment dev --ref codex/feature/v0.3.0
-  ./scripts/run_terraform_workflow.sh --action apply --environment dev --confirm-apply APPLY_AWS --ref codex/feature/v0.3.0
+  ./scripts/run_terraform_workflow.sh --action plan --environment dev --ref feature/v0.8.0
+  ./scripts/run_terraform_workflow.sh --action apply --environment dev --confirm-apply APPLY_AWS --ref feature/v0.8.0
+  ./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0
 EOF
 }
 
@@ -53,6 +55,10 @@ while [ "$#" -gt 0 ]; do
       CONFIRM_APPLY="${2:-}"
       shift 2
       ;;
+    --confirm-destroy)
+      CONFIRM_DESTROY="${2:-}"
+      shift 2
+      ;;
     --no-watch)
       WATCH=false
       shift
@@ -78,7 +84,7 @@ case "${ENVIRONMENT}" in
 esac
 
 case "${ACTION}" in
-  validate|plan|apply) ;;
+  validate|plan|apply|destroy) ;;
   *)
     echo "Invalid action: ${ACTION}"
     exit 1
@@ -107,10 +113,18 @@ if [ "${ACTION}" = "apply" ] && [ "${CONFIRM_APPLY}" != "APPLY_AWS" ]; then
   exit 1
 fi
 
+if [ "${ACTION}" = "destroy" ] && [ "${CONFIRM_DESTROY}" != "DESTROY_AWS" ]; then
+  echo "destroy requires --confirm-destroy DESTROY_AWS"
+  exit 1
+fi
+
+dispatch_epoch="$(date -u +%s)"
+
 gh workflow run terraform-multiplatform.yml "${repo_args[@]}" "${ref_args[@]}" \
   -f environment="${ENVIRONMENT}" \
   -f action="${ACTION}" \
-  -f confirm_apply="${CONFIRM_APPLY}"
+  -f confirm_apply="${CONFIRM_APPLY}" \
+  -f confirm_destroy="${CONFIRM_DESTROY}"
 
 echo "workflow dispatched: action=${ACTION}, environment=${ENVIRONMENT}"
 
@@ -125,15 +139,26 @@ if [ "${WATCH}" = true ]; then
     watch_branch="$(git rev-parse --abbrev-ref HEAD)"
   fi
 
-  run_id="$(gh run list "${repo_args[@]}" \
-    --workflow "Terraform Multi-Platform Skeleton" \
-    --branch "${watch_branch}" \
-    --limit 1 \
-    --json databaseId \
-    | jq -r '.[0].databaseId')"
+  run_id=""
+  for _ in $(seq 1 15); do
+    run_id="$(gh run list "${repo_args[@]}" \
+      --workflow "Terraform AWS Baseline" \
+      --branch "${watch_branch}" \
+      --limit 20 \
+      --json databaseId,event,createdAt \
+      | jq -r --argjson t "${dispatch_epoch}" '
+          [.[] | select(.event=="workflow_dispatch") | select((.createdAt | fromdateiso8601) >= ($t - 60))][0].databaseId
+        ')"
+    if [ -n "${run_id}" ] && [ "${run_id}" != "null" ]; then
+      break
+    fi
+    sleep 2
+  done
 
   if [ -z "${run_id}" ] || [ "${run_id}" = "null" ]; then
     echo "Could not resolve latest run id for branch ${watch_branch}."
+    echo "Recent runs:"
+    gh run list "${repo_args[@]}" --workflow "Terraform AWS Baseline" --branch "${watch_branch}" --limit 5
     exit 1
   fi
 

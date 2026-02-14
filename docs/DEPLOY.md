@@ -1,20 +1,16 @@
-# Deployment Guide (GitHub Actions + Terraform Skeleton)
+# Deployment Guide (GitHub Actions + Terraform AWS Baseline)
 
 最終更新: 2026-02-12
 
-このドキュメントは、`GitHub Actions + Terraform` でマルチプラットフォーム展開へ進めるための最小骨格を説明します。
+このドキュメントは、`GitHub Actions + Terraform` で AWS を先行ターゲットとして運用する最小構成を説明します。
 
 ## 1. 追加された骨格
 
-- Workflow: `.github/workflows/terraform-multiplatform.yml`
+- Workflow: `.github/workflows/terraform-multiplatform.yml` (AWS baseline)
 - Terraform root modules:
   - `infra/terraform/platforms/aws`
-  - `infra/terraform/platforms/gcp`
-  - `infra/terraform/platforms/azure`
 - サンプル変数:
   - `infra/terraform/environments/dev/aws.tfvars`
-  - `infra/terraform/environments/dev/gcp.tfvars`
-  - `infra/terraform/environments/dev/azure.tfvars`
 
 ## 2. GitHub Actions の使い方
 
@@ -24,39 +20,38 @@
 - `terraform init -backend=false`
 - `terraform validate`
 
-を `aws/gcp/azure` で実行します。
+を `aws` で実行します。
 
 ### 手動実行 (workflow_dispatch)
 
-`action=plan` を選ぶと、3プラットフォームで `terraform plan` を実行します。
-`action=apply` を選ぶと、AWS のみ `terraform apply` を実行します（確認トークン必須）。
+`action=plan` を選ぶと、AWS で `terraform plan` を実行します。  
+`action=apply` を選ぶと、AWS で `terraform apply` を実行します（確認トークン必須）。  
+`action=destroy` を選ぶと、AWS で `terraform destroy` を実行します（確認トークン必須）。
 
-> `gcp.tfvars` の `project_id = "replace-me"` が未置換の場合は、意図的に `plan` をスキップします。
+- `AWS_ROLE_TO_ASSUME` が未設定の場合: `plan` は offline mode で実行（Skeleton検証用途）
+- `AWS_ROLE_TO_ASSUME` が設定済みの場合: OIDC で AssumeRole して `plan/apply` を実行
 
 CLI から実行する場合:
 
 ```bash
 # validate
-./scripts/run_terraform_workflow.sh --action validate --environment dev --ref codex/feature/v0.3.0
+./scripts/run_terraform_workflow.sh --action validate --environment dev --ref feature/v0.8.0
 
 # plan
-./scripts/run_terraform_workflow.sh --action plan --environment dev --ref codex/feature/v0.3.0
+./scripts/run_terraform_workflow.sh --action plan --environment dev --ref feature/v0.8.0
 
 # apply (AWS only)
-./scripts/run_terraform_workflow.sh --action apply --environment dev --confirm-apply APPLY_AWS --ref codex/feature/v0.3.0
+./scripts/run_terraform_workflow.sh --action apply --environment dev --confirm-apply APPLY_AWS --ref feature/v0.8.0
+
+# destroy (AWS only)
+./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0
 ```
 
-## 3. #Node TODO の意味
+## 3. v0.8.0 の運用方針
 
-今回の骨格には `#Node:` コメントを入れてあり、そのまま次タスクのノードとして使えます。
-
-- `AWS OIDC`: 実装済み
-- `#Node: module "network"...`
-- `#Node: module "api_runtime"...`
-- `GCP OIDC`: 実装済み
-- `Azure OIDC`: 実装済み
-
-この `#Node:` を順に実装していくと、`validate -> plan -> apply` の順で安全に拡張できます。
+- 先行ターゲットは AWS に固定
+- `validate -> plan -> apply` の順で dev 環境を安定化
+- GCP/Azure は v0.9+ で再導入
 
 ## 4. 次に設定する Secrets/Variables (実運用前)
 
@@ -64,6 +59,9 @@ CLI から実行する場合:
 
 - Secret: `AWS_ROLE_TO_ASSUME`
 - Variable: `AWS_REGION` (未設定時は `ap-northeast-1`)
+
+`apply` / `destroy` を実行するには AWS アカウントと IAM Role（OIDC trust policy 設定済み）が必須です。  
+`plan` は Skeleton 段階では secret 未設定でも実行できます（offline mode）。
 
 GitHub Actions では `aws-actions/configure-aws-credentials@v4` を使い、OIDC で AssumeRole します。
 `workflow_dispatch` の `action=plan` 実行時、`matrix.platform == aws` で有効になります。
@@ -94,25 +92,7 @@ IAM Role 側の trust policy は最小で以下をベースにしてください
 }
 ```
 
-### GCP
-
-- Secret: `GCP_WORKLOAD_IDENTITY_PROVIDER`
-- Secret: `GCP_SERVICE_ACCOUNT`
-- Variable: `GCP_PROJECT_ID`
-
-`google-github-actions/auth@v2` で Workload Identity Federation を利用します。
-`GCP_WORKLOAD_IDENTITY_PROVIDER` と `GCP_SERVICE_ACCOUNT` が未設定の場合、GCP の `plan` はスキップされます。
-
-### Azure
-
-- Secret: `AZURE_CLIENT_ID`
-- Secret: `AZURE_TENANT_ID`
-- Secret: `AZURE_SUBSCRIPTION_ID`
-
-`azure/login@v2` で OIDC ログインします。
-3つの Secret が未設定の場合、Azure の `plan` はスキップされます。
-
-Secrets/Variables をまとめて設定する場合:
+AWS Secrets/Variables をまとめて設定する場合:
 
 ```bash
 # dry-run (値を表示)
@@ -124,13 +104,35 @@ Secrets/Variables をまとめて設定する場合:
 
 ## 5. ローカル検証
 
+`terraform` がローカルシェルで見えない場合は Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。
+Homebrew の `terraform` は 1.5.7 で固定される場合があるため、バージョン差異回避のためにも Nix 利用を推奨します。
+
 ```bash
-terraform -chdir=infra/terraform/platforms/aws init -backend=false
-terraform -chdir=infra/terraform/platforms/aws validate
+nix develop --command terraform version
+nix develop --command terraform fmt -check -recursive infra/terraform
+nix develop --command terraform -chdir=infra/terraform/platforms/aws init -backend=false
+nix develop --command terraform -chdir=infra/terraform/platforms/aws validate
 
-terraform -chdir=infra/terraform/platforms/gcp init -backend=false
-terraform -chdir=infra/terraform/platforms/gcp validate
-
-terraform -chdir=infra/terraform/platforms/azure init -backend=false
-terraform -chdir=infra/terraform/platforms/azure validate
 ```
+
+## 6. 実行証跡 (v0.8.0)
+
+- offline plan 証跡: `docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md`
+- rollback rehearsal 証跡: `docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md`
+
+## 7. Rollback Path (v0.8.0 minimum)
+
+Skeleton 段階では、rollback は `terraform destroy` を最小経路とします。
+
+```bash
+terraform -chdir=infra/terraform/platforms/aws apply -auto-approve -refresh=false -input=false -lock=false -var-file=../../environments/dev/aws.tfvars
+terraform -chdir=infra/terraform/platforms/aws destroy -auto-approve -refresh=false -input=false -lock=false -var-file=../../environments/dev/aws.tfvars
+```
+
+GitHub Actions から実行する場合（確認トークン付き）:
+
+```bash
+./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0
+```
+
+実AWS運用に入った後（OIDC + 実リソースあり）は、同じ経路で `dev` から先に検証してから `stg/prod` に展開します。

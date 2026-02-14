@@ -66,13 +66,13 @@ Exit Criteria:
 - GA checklist is complete and signed off.
 - Version `v1.0.0` can be tagged with reproducible release steps.
 
-## Current Sprint (v0.7.0)
+## Current Sprint (v0.8.0)
 
-- [x] Add call-center SDK sample to frontend showcase
-- [x] Add contractor onboarding checklist doc
-- [x] Add monthly SQLite release operation checklist doc
-- [x] Validate onboarding flow and record evidence (`docs/ONBOARDING_REHEARSAL_EVIDENCE.md`)
+- [x] AWS-first Terraform workflow baseline (`validate/plan/apply`) for dev
+- [x] OIDC-based AssumeRole integration for GitHub Actions
+- [x] Environment separation (`dev/stg/prod` tfvars)
+- [x] Rollback path documentation + rehearsal evidence
 
 ## Next One Task
 
-1. Start v0.8.0 baseline: select one primary cloud target for Terraform apply path.
+1. Start v0.9.0: define SLO/SLI and first operations runbook set.
