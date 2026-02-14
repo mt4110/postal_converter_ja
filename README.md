@@ -321,32 +321,42 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 
 👉 **Metrics(JSON):** `http://localhost:3202/metrics`
 
-👉 **仕様書（補助ドキュメント）:** [API_SPEC.md](./API_SPEC.md)
-👉 **SSO最小構成設計:** [SAML_SSO_MINIMAL_DESIGN.md](./docs/SAML_SSO_MINIMAL_DESIGN.md)
+### 参考ドキュメント
 
-👉 **開発者向け情報についてはこちら:** [DEVELOPMENT.md](./docs/DEVELOPMENT.md)
+- 仕様書（補助）: [API_SPEC.md](./API_SPEC.md)
+- SSO最小構成設計: [SAML_SSO_MINIMAL_DESIGN.md](./docs/SAML_SSO_MINIMAL_DESIGN.md)
+- 開発者向け情報: [DEVELOPMENT.md](./docs/DEVELOPMENT.md)
+- CI/CD 設計: [CI_DESIGN.md](./docs/CI_DESIGN.md)
 
-👉 **CI/CD 設計についてはこちら:** [CI_DESIGN.md](./docs/CI_DESIGN.md)
+### デプロイ / Terraform / Kubernetes
 
-👉 **デプロイ骨格（GitHub Actions + Terraform）はこちら:** [DEPLOY.md](./docs/DEPLOY.md)
-👉 **Kubernetes 導入ガイド（v0.8.2）:** [KUBERNETES_DEPLOYMENT.md](./docs/KUBERNETES_DEPLOYMENT.md)
-👉 **Kubernetes 導入設計図（既存運用向け）:** [K8S_ADOPTION_BLUEPRINT.md](./docs/K8S_ADOPTION_BLUEPRINT.md)
-👉 **Kubernetes 最小雛形:** `deploy/helm/postal-converter-ja` (Helm / デフォルト), `deploy/k8s/base` (Kustomize), `deploy/argocd` (ArgoCD route)
-👉 **v0.8 offline plan 証跡:** [TERRAFORM_OFFLINE_PLAN_EVIDENCE.md](./docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md)
-👉 **v0.8 rollback 証跡:** [TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md](./docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md)
-👉 **GitHub OIDC 設定スクリプト:** `./scripts/setup_github_oidc_vars.sh`
-👉 **Terraform workflow 実行スクリプト:** `./scripts/run_terraform_workflow.sh`
-👉 **Terraform rollback 実行（CI）:** `./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0`
-👉 **Terraform ローカル確認（Nix dev shell）:** `nix develop --command terraform version`
+- デプロイ骨格（GitHub Actions + Terraform）: [DEPLOY.md](./docs/DEPLOY.md)
+- Kubernetes 導入ガイド（v0.8.2）: [KUBERNETES_DEPLOYMENT.md](./docs/KUBERNETES_DEPLOYMENT.md)
+- Kubernetes 導入設計図（既存運用向け）: [K8S_ADOPTION_BLUEPRINT.md](./docs/K8S_ADOPTION_BLUEPRINT.md)
+- Kubernetes 最小雛形:
+  - `deploy/helm/postal-converter-ja`（Helm / デフォルト）
+  - `deploy/k8s/base`（Kustomize）
+  - `deploy/argocd`（ArgoCD route）
+- v0.8 offline plan 証跡: [TERRAFORM_OFFLINE_PLAN_EVIDENCE.md](./docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md)
+- v0.8 rollback 証跡: [TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md](./docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md)
 
-`terraform` がローカルシェルで見えない場合は、Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。  
+Terraform 関連の実行コマンド:
+
+```bash
+./scripts/setup_github_oidc_vars.sh
+./scripts/run_terraform_workflow.sh
+./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0
+nix develop --command terraform version
+```
+
+`terraform` がローカルシェルで見えない場合は Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。  
 Homebrew 経由では `terraform` が 1.5.7 固定になることがあるため、バージョン差異を避ける目的でも Nix を推奨します。
 
 Terraform/OpenTofu バージョン方針（v0.8）:
 
-- 最小要件: `>= 1.6.0`（Terraform/OpenTofu 互換バージョン。`infra/terraform/platforms/aws/main.tf` を参照）
-- CI 固定: `1.11.1`（Terraform CLI 利用時の固定バージョン。`.github/workflows/terraform-multiplatform.yml`）
-- ローカル推奨: `1.11+`（Nix dev shell 上の OpenTofu 互換 `terraform version` の確認値: `1.14.5`）
+- 最小要件: `>= 1.6.0`（`infra/terraform/platforms/aws/main.tf`）
+- CI 固定: `1.11.1`（`.github/workflows/terraform-multiplatform.yml`）
+- ローカル推奨: `1.11+`（Nix dev shell 上で `terraform version` を確認）
 
 ```bash
 nix develop --command terraform fmt -check -recursive infra/terraform

@@ -128,3 +128,28 @@ jobs:
       - name: Build Launcher
         working-directory: launcher
         run: go build -v ./...
+
+  helm:
+    name: Helm Lint & Template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve Helm version
+        id: helm-version
+        run: echo "version=$(cat .github/versions/helm3.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ steps.helm-version.outputs.version }}
+
+      - name: Helm lint
+        run: helm lint deploy/helm/postal-converter-ja
+
+      - name: Helm template
+        run: |
+          helm template postal-converter-ja deploy/helm/postal-converter-ja \
+            --namespace postal-converter-ja \
+            > /tmp/postal-converter-ja-rendered.yaml
+          test -s /tmp/postal-converter-ja-rendered.yaml
