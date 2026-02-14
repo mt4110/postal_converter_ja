@@ -56,10 +56,10 @@
 | RNB-01 | Runbook | 更新失敗時 Runbook | `docs/RUNBOOK_UPDATE_FAILURE_v0_9_0.md` | OPS-03 | 手順だけで復旧判断まで到達できる |
 | RNB-02 | Runbook | キャッシュ障害 Runbook | `docs/RUNBOOK_CACHE_INCIDENT_v0_9_0.md` | OPS-03 | stale/miss暴走の切り分けが可能 |
 | RNB-03 | Runbook | DBロールバック Runbook | `docs/RUNBOOK_DB_ROLLBACK_v0_9_0.md` | OPS-03 | ロールバック判断・実施・確認が記載済み |
-| AUD-01 | Audit | 月次監査レポート雛形作成 | `docs/templates/monthly_audit_report.md` | RNB-01..03 | 更新履歴/差分/稼働状況を埋められる |
-| BIZ-01 | Sales Ops | 契約/NDA 導入チェック化 | `docs/templates/nda_onboarding_checklist.md` | - | 営業->導入引き継ぎ時の確認漏れが0 |
-| BIZ-02 | Sales Ops | 顧客別導入テンプレ・見積基準 | `docs/templates/customer_onboarding_estimate.md` | BIZ-01 | 工数見積の入力項目と判定ルールが固定 |
-| QA-01 | Human Test | 障害訓練シナリオ作成 | `docs/tests/v0_9_0_human_drill.md` | RNB-01..03 | 3障害 + 1監査生成の訓練脚本が完成 |
+| AUD-01 | Audit | 月次監査レポート雛形作成 | `docs/MONTHLY_AUDIT_REPORT_TEMPLATE_v0_9_0.md` | RNB-01..03 | 更新履歴/差分/稼働状況を埋められる |
+| BIZ-01 | Sales Ops | 契約/NDA 導入チェック化 | `docs/NDA_ONBOARDING_CHECKLIST_v0_9_0.md` | - | 営業->導入引き継ぎ時の確認漏れが0 |
+| BIZ-02 | Sales Ops | 顧客別導入テンプレ・見積基準 | `docs/CUSTOMER_ONBOARDING_ESTIMATE_TEMPLATE_v0_9_0.md` | BIZ-01 | 工数見積の入力項目と判定ルールが固定 |
+| QA-01 | Human Test | 障害訓練シナリオ作成 | `docs/HUMAN_TEST_SCENARIO_v0_9_0.md` | RNB-01..03 | 3障害 + 1監査生成の訓練脚本が完成 |
 | QA-02 | Human Test | 人間テスト1回目 (ドライラン) | 証跡ログ/改善チケット | QA-01 | 手順詰まりポイントが記録されている |
 | QA-03 | Human Test | Runbook 改訂 | Runbook v2 | QA-02 | 改訂差分と理由が残っている |
 | QA-04 | Human Test | 最終受け入れ (Go/No-Go) | `docs/V0_9_0_ACCEPTANCE.md` | QA-03, AUD-01, BIZ-02 | Exit Criteriaを満たす判定結果がある |
@@ -128,3 +128,7 @@
 - 2026-02-14: `RNB-01` の成果物として `docs/RUNBOOK_UPDATE_FAILURE_v0_9_0.md` を作成。
 - 2026-02-14: `RNB-02` の成果物として `docs/RUNBOOK_CACHE_INCIDENT_v0_9_0.md` を作成。
 - 2026-02-14: `RNB-03` の成果物として `docs/RUNBOOK_DB_ROLLBACK_v0_9_0.md` を作成。
+- 2026-02-14: `AUD-01` の成果物として `docs/MONTHLY_AUDIT_REPORT_TEMPLATE_v0_9_0.md` を作成。
+- 2026-02-14: `BIZ-01` の成果物として `docs/NDA_ONBOARDING_CHECKLIST_v0_9_0.md` を作成。
+- 2026-02-14: `BIZ-02` の成果物として `docs/CUSTOMER_ONBOARDING_ESTIMATE_TEMPLATE_v0_9_0.md` を作成。
+- 2026-02-14: `QA-01` の成果物として `docs/HUMAN_TEST_SCENARIO_v0_9_0.md` を作成。
