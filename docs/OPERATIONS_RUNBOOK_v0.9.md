@@ -56,7 +56,7 @@ curl -fsS https://<prod-host>/ready
 ```
 
 4. 判定:
-   - Secret/接続起因なら `EXTERNAL_SECRETS_RUNBOOK.md` に沿って切り分け
+   - Secret/接続起因なら `docs/EXTERNAL_SECRETS_RUNBOOK.md` に沿って切り分け
    - リリース起因なら Helm rollback を優先
    - インフラ起因（LB/Ingress/DB 障害）なら platform 担当へ即時エスカレーション
 
