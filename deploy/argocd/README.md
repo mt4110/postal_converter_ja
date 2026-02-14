@@ -18,4 +18,10 @@ Shared source configuration:
 - path: `deploy/helm/postal-converter-ja`
 - targetRevision: `main`
 
+Environment defaults:
+
+- dev: `replicaCount=1`
+- stg: `replicaCount=1`
+- prod: `replicaCount=2`
+
 For branch validation, update `targetRevision` to your feature branch.
