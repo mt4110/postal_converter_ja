@@ -339,11 +339,11 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 `terraform` がローカルシェルで見えない場合は、Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。  
 Homebrew 経由では `terraform` が 1.5.7 固定になることがあるため、バージョン差異を避ける目的でも Nix を推奨します。
 
-Terraform バージョン方針（v0.8）:
+Terraform/OpenTofu バージョン方針（v0.8）:
 
-- 最小要件: `>= 1.6.0`（`infra/terraform/platforms/aws/main.tf`）
-- CI 固定: `1.11.1`（`.github/workflows/terraform-multiplatform.yml`）
-- ローカル推奨: `1.11+`（この端末の確認値: `1.14.5`）
+- 最小要件: `>= 1.6.0`（Terraform/OpenTofu 互換バージョン。`infra/terraform/platforms/aws/main.tf` を参照）
+- CI 固定: `1.11.1`（Terraform CLI 利用時の固定バージョン。`.github/workflows/terraform-multiplatform.yml`）
+- ローカル推奨: `1.11+`（Nix dev shell 上の OpenTofu 互換 `terraform version` の確認値: `1.14.5`）
 
 ```bash
 nix develop --command terraform fmt -check -recursive infra/terraform
@@ -356,7 +356,6 @@ CI でも同等チェック（fmt/validate）を実行します。
 
 👉 **SQLite 配布ワークフロー（GitHub Actions 手動実行）:** `.github/workflows/sqlite-release.yml`
 
-👉 **販売準備ロードマップ（2026年4月目標）はこちら:** [SALES_READINESS_PLAN_2026Q2.md](./docs/SALES_READINESS_PLAN_2026Q2.md)
 
 ## ライセンスと商用利用について
 
@@ -373,29 +372,27 @@ CI でも同等チェック（fmt/validate）を実行します。
 
 このモデルにより、オープンソースとしての発展と、持続可能な開発体制の両立を目指しています。
 
-> [!NOTE]
-> 個人受託を先行しやすくするための「条件付きフリーライセンス案」は、`docs/SALES_READINESS_PLAN_2026Q2.md` を参照してください。
-
 ## ロードマップ (TODO)
 
-詳細な実行計画（優先度・日付入り）は `docs/SALES_READINESS_PLAN_2026Q2.md` を参照してください。  
-v0.8.0 以降の実行順序は `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照してください。
+実行順序とマイルストーンは `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照してください。
 
 - [x] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
 - [x] **ランチャーの UX 改善**: 実行順序の制御と視覚的フィードバック
 - [x] **環境構築の自動化 (v0.6)**: `scripts/setup_nix_docker.sh` + `scripts/onboard.sh` で導入を標準化
-- [x] **デプロイ基盤 (v0.8)**: GitHub Actions + Terraform の AWS 先行運用を確立（その後マルチクラウド展開）
+- [ ] **マルチプラットフォーム デプロイ基盤**: GitHub Actions + Terraform による環境展開（クラウド別ターゲット対応）
 - [x] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
 - [x] **Docker イメージの軽量化**: マルチステージビルドの最適化（API/Crawler）
 - [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize 含む）
 - [x] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
 
-### v0.8.0 フォーカス（デプロイ基盤）
+### v0.8.1 フォーカス（デプロイ基盤の仕上げ）
 
-- [x] **AWS先行IaC運用**: GitHub Actions + Terraform の `validate/plan/apply` を `dev` で実行可能化
+- [x] **AWS先行IaC運用**: GitHub Actions + Terraform の `validate/plan/apply/destroy` を `dev` で実行可能化
 - [x] **環境分離**: `dev/stg/prod` の `aws.tfvars` を追加
 - [x] **オフライン検証経路**: AWSシークレット未設定でも `plan` を実行できる導線を整備
 - [x] **ロールバック運用**: `destroy` 手順を runbook 化し、実行証跡を追加
+- [ ] **マルチクラウド再拡張**: GCP/Azure ターゲットの再導入
+- [ ] **Kubernetes最小構成**: Helm/Kustomize 雛形の追加
 
 ## バージョン
 
