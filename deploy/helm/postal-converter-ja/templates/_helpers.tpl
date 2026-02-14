@@ -26,3 +26,11 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/name: {{ include "postal-converter-ja.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
+
+{{- define "postal-converter-ja.secretName" -}}
+{{- if .Values.secret.name -}}
+{{- .Values.secret.name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-secret" (include "postal-converter-ja.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}

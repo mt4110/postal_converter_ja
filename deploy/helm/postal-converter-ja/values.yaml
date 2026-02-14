@@ -28,11 +28,35 @@ config:
   AUTH_ANONYMOUS_PATHS: "/health,/ready,/openapi.json,/docs"
 
 secret:
-  create: true
-  POSTGRES_DATABASE_URL: "postgres://postgres:postgres_password@postgres:5432/zip_code_db"
-  MYSQL_DATABASE_URL: "mysql://mysql_user:u_password@mysql:3306/zip_code_db"
-  SQLITE_DATABASE_PATH: "/data/postal_codes.sqlite3"
-  REDIS_URL: "redis://redis:6379"
+  create: false
+  name: ""
+  data:
+    POSTGRES_DATABASE_URL: ""
+    MYSQL_DATABASE_URL: ""
+    SQLITE_DATABASE_PATH: ""
+    REDIS_URL: ""
+
+externalSecret:
+  enabled: false
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: ""
+  target:
+    creationPolicy: Owner
+  data:
+    POSTGRES_DATABASE_URL:
+      key: ""
+      property: ""
+    MYSQL_DATABASE_URL:
+      key: ""
+      property: ""
+    SQLITE_DATABASE_PATH:
+      key: ""
+      property: ""
+    REDIS_URL:
+      key: ""
+      property: ""
 
 podAnnotations: {}
 podLabels: {}
