@@ -51,11 +51,11 @@
 | ID | 種別 | タスク | 主成果物 | 依存 | 完了条件 (DoD) |
 | --- | --- | --- | --- | --- | --- |
 | OPS-01 | Observability | SLI/SLO 定義の確定 | `docs/SLO_SLI_v0_9_0.md` | - | 指標定義・計測窓・エラーバジェットが明記されている |
-| OPS-02 | Observability | ダッシュボードの標準化 | ダッシュボードJSON/スクリーンショット | OPS-01 | 主要指標が1画面で確認可能 |
+| OPS-02 | Observability | ダッシュボードの標準化 | `docs/DASHBOARD_STANDARD_v0_9_0.md` | OPS-01 | 主要指標が1画面で確認可能 |
 | OPS-03 | Observability | アラート閾値と通知経路の定義 | `docs/ALERT_POLICY_v0_9_0.md` | OPS-01 | P1/P2/P3の判定基準と通知先が固定 |
-| RNB-01 | Runbook | 更新失敗時 Runbook | `docs/runbooks/update_failure.md` | OPS-03 | 手順だけで復旧判断まで到達できる |
-| RNB-02 | Runbook | キャッシュ障害 Runbook | `docs/runbooks/cache_incident.md` | OPS-03 | stale/miss暴走の切り分けが可能 |
-| RNB-03 | Runbook | DBロールバック Runbook | `docs/runbooks/db_rollback.md` | OPS-03 | ロールバック判断・実施・確認が記載済み |
+| RNB-01 | Runbook | 更新失敗時 Runbook | `docs/RUNBOOK_UPDATE_FAILURE_v0_9_0.md` | OPS-03 | 手順だけで復旧判断まで到達できる |
+| RNB-02 | Runbook | キャッシュ障害 Runbook | `docs/RUNBOOK_CACHE_INCIDENT_v0_9_0.md` | OPS-03 | stale/miss暴走の切り分けが可能 |
+| RNB-03 | Runbook | DBロールバック Runbook | `docs/RUNBOOK_DB_ROLLBACK_v0_9_0.md` | OPS-03 | ロールバック判断・実施・確認が記載済み |
 | AUD-01 | Audit | 月次監査レポート雛形作成 | `docs/templates/monthly_audit_report.md` | RNB-01..03 | 更新履歴/差分/稼働状況を埋められる |
 | BIZ-01 | Sales Ops | 契約/NDA 導入チェック化 | `docs/templates/nda_onboarding_checklist.md` | - | 営業->導入引き継ぎ時の確認漏れが0 |
 | BIZ-02 | Sales Ops | 顧客別導入テンプレ・見積基準 | `docs/templates/customer_onboarding_estimate.md` | BIZ-01 | 工数見積の入力項目と判定ルールが固定 |
@@ -119,3 +119,12 @@
 - 本書のタスクID (`OPS-*`, `RNB-*`, `AUD-*`, `BIZ-*`, `QA-*`) をそのまま Issue タイトルへ含める。
 - バージョン表記は `v0.9.xxx` で統一し、該当 Issue で解決する。
 - 例: `[v0.9.0][OPS-01] SLI/SLO 定義の確定`
+
+## 9. 進捗ログ
+
+- 2026-02-14: `OPS-01` の成果物として `docs/SLO_SLI_v0_9_0.md` を作成。
+- 2026-02-14: `OPS-02` の成果物として `docs/DASHBOARD_STANDARD_v0_9_0.md` を作成。
+- 2026-02-14: `OPS-03` の成果物として `docs/ALERT_POLICY_v0_9_0.md` を作成。
+- 2026-02-14: `RNB-01` の成果物として `docs/RUNBOOK_UPDATE_FAILURE_v0_9_0.md` を作成。
+- 2026-02-14: `RNB-02` の成果物として `docs/RUNBOOK_CACHE_INCIDENT_v0_9_0.md` を作成。
+- 2026-02-14: `RNB-03` の成果物として `docs/RUNBOOK_DB_ROLLBACK_v0_9_0.md` を作成。
