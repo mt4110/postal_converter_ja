@@ -1,8 +1,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: postal-converter-ja
+  name: postal-converter-ja-dev
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: postal-converter-ja
+    env: dev
 spec:
   project: default
   source:
@@ -11,9 +14,70 @@ spec:
     path: deploy/helm/postal-converter-ja
     helm:
       releaseName: postal-converter-ja
+      parameters:
+        - name: replicaCount
+          value: "1"
   destination:
     server: https://kubernetes.default.svc
-    namespace: postal-converter-ja
+    namespace: postal-converter-ja-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postal-converter-ja-stg
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: postal-converter-ja
+    env: stg
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mt4110/postal_converter_ja.git
+    targetRevision: main
+    path: deploy/helm/postal-converter-ja
+    helm:
+      releaseName: postal-converter-ja
+      parameters:
+        - name: replicaCount
+          value: "1"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: postal-converter-ja-stg
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postal-converter-ja-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: postal-converter-ja
+    env: prod
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mt4110/postal_converter_ja.git
+    targetRevision: main
+    path: deploy/helm/postal-converter-ja
+    helm:
+      releaseName: postal-converter-ja
+      parameters:
+        - name: replicaCount
+          value: "2"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: postal-converter-ja-prod
   syncPolicy:
     automated:
       prune: true
