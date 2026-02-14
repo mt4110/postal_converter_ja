@@ -146,8 +146,8 @@ if [ "${WATCH}" = true ]; then
       --branch "${watch_branch}" \
       --limit 20 \
       --json databaseId,event,createdAt \
-      | jq -r --argjson t "${dispatch_epoch}" '
-          [.[] | select(.event=="workflow_dispatch") | select((.createdAt | fromdateiso8601) >= ($t - 60))][0].databaseId
+      | jq -r '
+          [.[] | select(.event=="workflow_dispatch")][0].databaseId
         ')"
     if [ -n "${run_id}" ] && [ "${run_id}" != "null" ]; then
       break
