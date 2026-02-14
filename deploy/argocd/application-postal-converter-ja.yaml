@@ -14,9 +14,8 @@ spec:
     path: deploy/helm/postal-converter-ja
     helm:
       releaseName: postal-converter-ja
-      parameters:
-        - name: replicaCount
-          value: "1"
+      valueFiles:
+        - values-dev.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: postal-converter-ja-dev
@@ -43,9 +42,8 @@ spec:
     path: deploy/helm/postal-converter-ja
     helm:
       releaseName: postal-converter-ja
-      parameters:
-        - name: replicaCount
-          value: "1"
+      valueFiles:
+        - values-stg.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: postal-converter-ja-stg
@@ -72,9 +70,8 @@ spec:
     path: deploy/helm/postal-converter-ja
     helm:
       releaseName: postal-converter-ja
-      parameters:
-        - name: replicaCount
-          value: "2"
+      valueFiles:
+        - values-prod.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: postal-converter-ja-prod

@@ -8,9 +8,9 @@ kubectl apply -f deploy/argocd/application-postal-converter-ja.yaml
 
 This creates 3 ArgoCD Applications:
 
-- `postal-converter-ja-dev` -> namespace `postal-converter-ja-dev`
-- `postal-converter-ja-stg` -> namespace `postal-converter-ja-stg`
-- `postal-converter-ja-prod` -> namespace `postal-converter-ja-prod`
+- `postal-converter-ja-dev` -> namespace `postal-converter-ja-dev` -> `values-dev.yaml`
+- `postal-converter-ja-stg` -> namespace `postal-converter-ja-stg` -> `values-stg.yaml`
+- `postal-converter-ja-prod` -> namespace `postal-converter-ja-prod` -> `values-prod.yaml`
 
 Shared source configuration:
 

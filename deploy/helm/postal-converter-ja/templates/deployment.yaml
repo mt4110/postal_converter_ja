@@ -32,9 +32,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "postal-converter-ja.fullname" . }}-config
-            {{- if .Values.secret.create }}
+            {{- if or .Values.secret.create .Values.externalSecret.enabled .Values.secret.name }}
             - secretRef:
-                name: {{ include "postal-converter-ja.fullname" . }}-secret
+                name: {{ include "postal-converter-ja.secretName" . }}
             {{- end }}
           livenessProbe:
             httpGet:

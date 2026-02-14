@@ -135,17 +135,64 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve Helm version
+        id: helm-version
+        run: echo "version=$(cat .github/versions/helm3.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve kubeconform version
+        id: kubeconform-version
+        run: echo "version=$(cat .github/versions/kubeconform.txt)" >> "$GITHUB_OUTPUT"
+
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
-          version: v3.16.3
+          version: ${{ steps.helm-version.outputs.version }}
+
+      - name: Install kubeconform
+        run: |
+          ARCH="$(uname -m)"
+          case "$ARCH" in
+            x86_64) ARCH="amd64" ;;
+            aarch64|arm64) ARCH="arm64" ;;
+            *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+          esac
+          curl -fsSL -o /tmp/kubeconform.tar.gz \
+            "https://github.com/yannh/kubeconform/releases/download/${{ steps.kubeconform-version.outputs.version }}/kubeconform-linux-${ARCH}.tar.gz"
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp kubeconform
+          install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
 
       - name: Helm lint
         run: helm lint deploy/helm/postal-converter-ja
 
-      - name: Helm template
+      - name: Helm template (default)
         run: |
           helm template postal-converter-ja deploy/helm/postal-converter-ja \
             --namespace postal-converter-ja \
-            > /tmp/postal-converter-ja-rendered.yaml
-          test -s /tmp/postal-converter-ja-rendered.yaml
+            > /tmp/postal-converter-ja-default.yaml
+          test -s /tmp/postal-converter-ja-default.yaml
+
+      - name: Helm template (dev/stg/prod)
+        run: |
+          helm template postal-converter-ja deploy/helm/postal-converter-ja \
+            --namespace postal-converter-ja-dev \
+            -f deploy/helm/postal-converter-ja/values-dev.yaml \
+            > /tmp/postal-converter-ja-dev.yaml
+          helm template postal-converter-ja deploy/helm/postal-converter-ja \
+            --namespace postal-converter-ja-stg \
+            -f deploy/helm/postal-converter-ja/values-stg.yaml \
+            > /tmp/postal-converter-ja-stg.yaml
+          helm template postal-converter-ja deploy/helm/postal-converter-ja \
+            --namespace postal-converter-ja-prod \
+            -f deploy/helm/postal-converter-ja/values-prod.yaml \
+            > /tmp/postal-converter-ja-prod.yaml
+          test -s /tmp/postal-converter-ja-dev.yaml
+          test -s /tmp/postal-converter-ja-stg.yaml
+          test -s /tmp/postal-converter-ja-prod.yaml
+
+      - name: kubeconform validate rendered manifests
+        run: |
+          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-default.yaml
+          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-dev.yaml
+          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-stg.yaml
+          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-prod.yaml

@@ -1,4 +1,4 @@
-# K8S Adoption Blueprint (v0.8.2)
+# K8S Adoption Blueprint (v0.8.3)
 
 既存の Kubernetes 運用基盤に `postal_converter_ja` を安全に組み込むための設計図です。
 
@@ -8,7 +8,7 @@
 flowchart LR
   GH["GitHub Container Registry"] --> ARGO["ArgoCD (GitOps)"]
   ARGO --> HELM["Helm Chart: deploy/helm/postal-converter-ja"]
-  HELM --> NS["Namespace: postal-converter-ja"]
+  HELM --> NS["Namespaces: postal-converter-ja-dev/stg/prod"]
   NS --> DEP["Deployment: postal-converter-api"]
   DEP --> SVC["Service: ClusterIP :3202"]
   INGRESS["Ingress / Gateway"] --> SVC
@@ -100,47 +100,38 @@ kubectl config current-context
 helm version
 ```
 
-### Step 1: values オーバーライドを作成
+### Step 1: values オーバーライドを確認
 
-`deploy/helm/postal-converter-ja/values-prod.yaml` を新規作成:
+v0.8.3 では環境別 values をあらかじめ用意:
 
-```yaml
-image:
-  repository: ghcr.io/mt4110/postal_converter_ja/api
-  tag: "v0.8.2"
-
-config:
-  DATABASE_TYPE: "postgres"
-  READY_REQUIRE_CACHE: "true"
-
-secret:
-  create: false
-```
+- `deploy/helm/postal-converter-ja/values-dev.yaml`
+- `deploy/helm/postal-converter-ja/values-stg.yaml`
+- `deploy/helm/postal-converter-ja/values-prod.yaml`
 
 ### Step 2: Secret を既存基盤で作成（例）
 
 ```bash
-kubectl -n postal-converter-ja create secret generic postal-converter-ja-secret \
-  --from-literal=POSTGRES_DATABASE_URL='postgres://***' \
-  --from-literal=MYSQL_DATABASE_URL='mysql://***' \
-  --from-literal=REDIS_URL='redis://***' \
-  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n external-secrets get clustersecretstore
+kubectl -n postal-converter-ja-dev get externalsecret
+kubectl -n postal-converter-ja-stg get externalsecret
+kubectl -n postal-converter-ja-prod get externalsecret
 ```
 
 ### Step 3: マニフェスト差分確認（dry-run）
 
 ```bash
 helm template postal-converter-ja deploy/helm/postal-converter-ja \
-  -n postal-converter-ja \
+  -n postal-converter-ja-prod \
   -f deploy/helm/postal-converter-ja/values.yaml \
   -f deploy/helm/postal-converter-ja/values-prod.yaml > /tmp/postal-rendered.yaml
+kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-rendered.yaml
 ```
 
 ### Step 4: デプロイ
 
 ```bash
 helm upgrade --install postal-converter-ja deploy/helm/postal-converter-ja \
-  -n postal-converter-ja \
+  -n postal-converter-ja-prod \
   --create-namespace \
   -f deploy/helm/postal-converter-ja/values.yaml \
   -f deploy/helm/postal-converter-ja/values-prod.yaml
@@ -149,9 +140,9 @@ helm upgrade --install postal-converter-ja deploy/helm/postal-converter-ja \
 ### Step 5: 稼働確認
 
 ```bash
-kubectl -n postal-converter-ja get deploy,po,svc
-kubectl -n postal-converter-ja rollout status deploy/postal-converter-ja
-kubectl -n postal-converter-ja port-forward svc/postal-converter-ja 3202:3202
+kubectl -n postal-converter-ja-prod get deploy,po,svc,ingress,networkpolicy,externalsecret
+kubectl -n postal-converter-ja-prod rollout status deploy/postal-converter-ja
+kubectl -n postal-converter-ja-prod port-forward svc/postal-converter-ja 3202:3202
 curl -fsS http://127.0.0.1:3202/health
 curl -fsS http://127.0.0.1:3202/ready
 ```
@@ -160,13 +151,19 @@ curl -fsS http://127.0.0.1:3202/ready
 
 ```bash
 kubectl apply -f deploy/argocd/application-postal-converter-ja.yaml
-argocd app sync postal-converter-ja
-argocd app wait postal-converter-ja --health --operation
+argocd app sync postal-converter-ja-dev
+argocd app sync postal-converter-ja-stg
+argocd app sync postal-converter-ja-prod
+argocd app wait postal-converter-ja-dev --health --operation
+argocd app wait postal-converter-ja-stg --health --operation
+argocd app wait postal-converter-ja-prod --health --operation
 ```
 
-## 8. v0.8.2 の到達点
+## 8. v0.8.3 の到達点
 
 - Helm デフォルト導入ルートを用意
 - Kustomize 最小雛形を用意
-- ArgoCD GitOps ルートを追加
+- ArgoCD GitOps ルートを `dev/stg/prod` に分離
+- External Secret / Ingress / NetworkPolicy の最小雛形を追加
+- CI に Helm template + kubeconform 検証を追加
 - 既存運用へ組み込む導入手順を定義

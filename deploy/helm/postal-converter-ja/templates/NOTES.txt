@@ -1,4 +1,8 @@
 1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+  kubectl --namespace {{ .Release.Namespace }} get ingress {{ include "postal-converter-ja.fullname" . }}
+{{- else }}
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/name={{ include "postal-converter-ja.name" . }}" -o jsonpath="{.items[0].metadata.name}")
   kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "postal-converter-ja.fullname" . }} 3202:{{ .Values.service.port }}
   curl -fsS http://127.0.0.1:3202/health
+{{- end }}
