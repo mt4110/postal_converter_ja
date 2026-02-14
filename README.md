@@ -338,6 +338,8 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
   - `deploy/k8s/base`（Kustomize）
   - `deploy/argocd`（ArgoCD route）
 - Kubernetes 導入リハーサル証跡（v0.8.3）: [K8S_REHEARSAL_EVIDENCE_v0.8.3.md](./docs/K8S_REHEARSAL_EVIDENCE_v0.8.3.md)
+- ExternalSecret 運用の最小 Runbook: [EXTERNAL_SECRETS_RUNBOOK.md](./docs/EXTERNAL_SECRETS_RUNBOOK.md)
+- v0.9 運用 Runbook ドラフト（SLO/SLI・一次対応）: [OPERATIONS_RUNBOOK_v0.9.md](./docs/OPERATIONS_RUNBOOK_v0.9.md)
 - v0.8 offline plan 証跡: [TERRAFORM_OFFLINE_PLAN_EVIDENCE.md](./docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md)
 - v0.8 rollback 証跡: [TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md](./docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md)
 

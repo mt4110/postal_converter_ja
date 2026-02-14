@@ -191,8 +191,15 @@ jobs:
           test -s /tmp/postal-converter-ja-prod.yaml
 
       - name: kubeconform validate rendered manifests
+        env:
+          KUBECONFORM_ARGS: "-strict -summary -ignore-missing-schemas"
         run: |
-          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-default.yaml
-          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-dev.yaml
-          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-stg.yaml
-          kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-converter-ja-prod.yaml
+          # CRD schema (e.g. ExternalSecret) may not be resolvable in CI network context.
+          # Policy: keep strict validation for core resources and allow missing CRD schemas.
+          for manifest in \
+            /tmp/postal-converter-ja-default.yaml \
+            /tmp/postal-converter-ja-dev.yaml \
+            /tmp/postal-converter-ja-stg.yaml \
+            /tmp/postal-converter-ja-prod.yaml; do
+            kubeconform ${KUBECONFORM_ARGS} "$manifest"
+          done
