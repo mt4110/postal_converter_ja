@@ -331,12 +331,13 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 ### デプロイ / Terraform / Kubernetes
 
 - デプロイ骨格（GitHub Actions + Terraform）: [DEPLOY.md](./docs/DEPLOY.md)
-- Kubernetes 導入ガイド（v0.8.2）: [KUBERNETES_DEPLOYMENT.md](./docs/KUBERNETES_DEPLOYMENT.md)
+- Kubernetes 導入ガイド（v0.8.3）: [KUBERNETES_DEPLOYMENT.md](./docs/KUBERNETES_DEPLOYMENT.md)
 - Kubernetes 導入設計図（既存運用向け）: [K8S_ADOPTION_BLUEPRINT.md](./docs/K8S_ADOPTION_BLUEPRINT.md)
 - Kubernetes 最小雛形:
   - `deploy/helm/postal-converter-ja`（Helm / デフォルト）
   - `deploy/k8s/base`（Kustomize）
   - `deploy/argocd`（ArgoCD route）
+- Kubernetes 導入リハーサル証跡（v0.8.3）: [K8S_REHEARSAL_EVIDENCE_v0.8.3.md](./docs/K8S_REHEARSAL_EVIDENCE_v0.8.3.md)
 - v0.8 offline plan 証跡: [TERRAFORM_OFFLINE_PLAN_EVIDENCE.md](./docs/TERRAFORM_OFFLINE_PLAN_EVIDENCE.md)
 - v0.8 rollback 証跡: [TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md](./docs/TERRAFORM_ROLLBACK_REHEARSAL_EVIDENCE.md)
 
