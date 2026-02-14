@@ -339,11 +339,11 @@ SSOヘッダ認証（`AUTH_MODE=sso_header`）:
 `terraform` がローカルシェルで見えない場合は、Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。  
 Homebrew 経由では `terraform` が 1.5.7 固定になることがあるため、バージョン差異を避ける目的でも Nix を推奨します。
 
-Terraform バージョン方針（v0.8）:
+Terraform/OpenTofu バージョン方針（v0.8）:
 
-- 最小要件: `>= 1.6.0`（`infra/terraform/platforms/aws/main.tf`）
-- CI 固定: `1.11.1`（`.github/workflows/terraform-multiplatform.yml`）
-- ローカル推奨: `1.11+`（この端末の確認値: `1.14.5`）
+- 最小要件: `>= 1.6.0`（Terraform/OpenTofu 互換バージョン。`infra/terraform/platforms/aws/main.tf` を参照）
+- CI 固定: `1.11.1`（Terraform CLI 利用時の固定バージョン。`.github/workflows/terraform-multiplatform.yml`）
+- ローカル推奨: `1.11+`（Nix dev shell 上の OpenTofu 互換 `terraform version` の確認値: `1.14.5`）
 
 ```bash
 nix develop --command terraform fmt -check -recursive infra/terraform
