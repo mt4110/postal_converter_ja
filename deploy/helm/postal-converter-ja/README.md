@@ -8,6 +8,12 @@ Default behavior in v0.8.3:
 - use External Secrets by enabling `externalSecret.enabled=true`
 - ingress / network policy templates are disabled by default
 
+Environment overlays:
+
+- `values-dev.yaml`
+- `values-stg.yaml`
+- `values-prod.yaml`
+
 ## Lint
 
 ```bash

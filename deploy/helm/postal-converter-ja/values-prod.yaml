@@ -1,0 +1,40 @@
+replicaCount: 2
+
+config:
+  READY_REQUIRE_CACHE: "true"
+
+externalSecret:
+  enabled: true
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: postal-converter-ja-prod
+  data:
+    POSTGRES_DATABASE_URL:
+      key: postal-converter-ja/prod/database
+      property: postgres_url
+    MYSQL_DATABASE_URL:
+      key: postal-converter-ja/prod/database
+      property: mysql_url
+    SQLITE_DATABASE_PATH:
+      key: postal-converter-ja/prod/database
+      property: sqlite_path
+    REDIS_URL:
+      key: postal-converter-ja/prod/cache
+      property: redis_url
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: postal-converter-ja.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+networkPolicy:
+  enabled: true
+  ingress:
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
