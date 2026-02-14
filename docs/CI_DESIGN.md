@@ -55,3 +55,18 @@ We will add a new job `integration-test` to `.github/workflows/ci.yml`.
 ## 📈 Future Expansion (Optional)
 
 - **Weekly Full Test**: If we really want to test the _real_ Japan Post file (to catch format changes), we can create a separate Scheduled Workflow that runs once a week. This minimizes load while ensuring long-term compatibility.
+
+## Kubernetes Manifest Validation Policy (v0.8.4)
+
+Helm chart の回帰検知は `.github/workflows/ci.yml` の `helm` ジョブで行う。
+
+- `helm lint` を実行する。
+- `helm template` を `default/dev/stg/prod` の4パターンでレンダリングする。
+- `kubeconform` は `-strict -summary` を必須にし、型不整合を fail させる。
+- CRD（現時点では `ExternalSecret`）は標準スキーマ未提供ケースがあるため、`-ignore-missing-schemas` を併用する。
+
+運用ルール:
+
+- `-ignore-missing-schemas` は「CRD由来の未解決スキーマのみ」を許容するための例外として扱う。
+- 新規 CRD を導入した場合は、PR に「なぜこの例外が必要か」を記載する。
+- CRD の安定スキーマ配布元を固定できる段階になったら、`-ignore-missing-schemas` の解除を検討する。

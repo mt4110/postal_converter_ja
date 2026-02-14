@@ -77,3 +77,5 @@ argocd app wait postal-converter-ja-prod --health --operation
 - `secret.create=false` を維持し、接続情報は External Secrets 側で管理してください。
 - `ingress.enabled` / `networkPolicy.enabled` は環境 values で明示的に有効化してください。
 - `image.repository` / `image.tag` は CI 生成イメージに合わせて固定してください。
+- External Secrets の切替・障害時確認は `docs/EXTERNAL_SECRETS_RUNBOOK.md` を参照してください。
+- CI の kubeconform では CRD（例: `ExternalSecret`）に対して `-ignore-missing-schemas` を使用します。詳細方針は `docs/CI_DESIGN.md` を参照してください。

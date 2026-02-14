@@ -127,6 +127,11 @@ helm template postal-converter-ja deploy/helm/postal-converter-ja \
 kubeconform -strict -summary -ignore-missing-schemas /tmp/postal-rendered.yaml
 ```
 
+補足:
+
+- CRD（例: `ExternalSecret`）は kubeconform のデフォルトスキーマ対象外のため、CI では `-ignore-missing-schemas` を利用します。
+- 許容方針と見直し条件は `docs/CI_DESIGN.md` に明文化します。
+
 ### Step 4: デプロイ
 
 ```bash
