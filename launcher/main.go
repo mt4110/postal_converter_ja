@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,9 +67,9 @@ type model struct {
 }
 
 const (
-	apiBaseURL   = "http://127.0.0.1:3202"
-	swaggerURL   = "http://127.0.0.1:3202/docs"
-	frontendURL  = "http://127.0.0.1:3203"
+	apiBaseURL  = "http://127.0.0.1:3202"
+	swaggerURL  = "http://127.0.0.1:3202/docs"
+	frontendURL = "http://127.0.0.1:3203"
 )
 
 func initialModel() model {
@@ -202,7 +203,10 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 	case 0: // Start Databases
 		m.msg = "Starting databases..."
 		return m, func() tea.Msg {
-			err := runCommand("docker-compose", "up", "-d")
+			err := runDockerCompose("--profile", "cache", "up", "-d", "postgres", "redis")
+			if err == nil {
+				err = waitForPostgresReady(90 * time.Second)
+			}
 			return dbStartedMsg{err}
 		}
 	case 1: // Start Crawler
@@ -214,7 +218,10 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			projectRoot := projectRootDir()
 			err := openInTerminal(
-				fmt.Sprintf("cd '%s' && nix develop --command bash -lc 'cd worker/crawler && cargo run --release --bin crawler'", projectRoot),
+				fmt.Sprintf(
+					"cd '%s' && nix develop --command bash -lc 'cd worker/crawler && DATABASE_TYPE=postgres POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db REDIS_URL=redis://127.0.0.1:3206 cargo run --release --bin crawler'",
+					projectRoot,
+				),
 			)
 			time.Sleep(500 * time.Millisecond)
 			return crawlerStartedMsg{err}
@@ -228,9 +235,14 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			projectRoot := projectRootDir()
 			err := openInTerminal(
-				fmt.Sprintf("cd '%s' && nix develop --command bash -lc 'cd worker/api && cargo run --release --bin api'", projectRoot),
+				fmt.Sprintf(
+					"cd '%s' && nix develop --command bash -lc 'cd worker/api && DATABASE_TYPE=postgres POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db REDIS_URL=redis://127.0.0.1:3206 cargo run --release --bin api'",
+					projectRoot,
+				),
 			)
-			time.Sleep(500 * time.Millisecond)
+			if err == nil {
+				err = waitForURL(swaggerURL, 180*time.Second)
+			}
 			return apiStartedMsg{err}
 		}
 	case 3: // Start Frontend
@@ -242,15 +254,20 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			projectRoot := projectRootDir()
 			err := openInTerminal(
-				fmt.Sprintf("cd '%s' && nix develop --command bash -lc 'cd frontend && yarn install && yarn dev'", projectRoot),
+				fmt.Sprintf(
+					"cd '%s' && nix develop --command bash -lc 'cd frontend && if [ ! -d node_modules ]; then yarn install --frozen-lockfile || yarn install; fi && yarn dev'",
+					projectRoot,
+				),
 			)
-			time.Sleep(500 * time.Millisecond)
+			if err == nil {
+				err = waitForURL(frontendURL, 180*time.Second)
+			}
 			return frontendStartedMsg{err}
 		}
 	case 4: // Stop Databases
 		m.msg = "Stopping databases..."
 		return m, func() tea.Msg {
-			err := runCommand("docker-compose", "down")
+			err := runDockerCompose("--profile", "cache", "down")
 			return dbStoppedMsg{err}
 		}
 	case 5: // Exit
@@ -265,6 +282,41 @@ func runCommand(name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func runDockerCompose(args ...string) error {
+	if err := runCommand("docker", append([]string{"compose"}, args...)...); err == nil {
+		return nil
+	}
+	return runCommand("docker-compose", args...)
+}
+
+func waitForPostgresReady(timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		cmd := exec.Command("docker", "exec", "postgres_container", "pg_isready", "-U", "postgres", "-d", "zip_code_db")
+		if err := cmd.Run(); err == nil {
+			return nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return fmt.Errorf("postgres_container was not ready within %s", timeout)
+}
+
+func waitForURL(url string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	client := &http.Client{Timeout: 2 * time.Second}
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(url)
+		if err == nil {
+			_ = resp.Body.Close()
+			if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+				return nil
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return fmt.Errorf("service did not become ready at %s within %s", url, timeout)
 }
 
 func openInTerminal(command string) error {
