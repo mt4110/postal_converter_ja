@@ -70,6 +70,7 @@ const (
 	apiBaseURL  = "http://127.0.0.1:3202"
 	swaggerURL  = "http://127.0.0.1:3202/docs"
 	frontendURL = "http://127.0.0.1:3203"
+	menuStartY  = 6
 )
 
 func initialModel() model {
@@ -105,6 +106,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
+	case tea.MouseMsg:
+		return m.handleMouseMsg(msg)
 	case dbStartedMsg:
 		return m.handleDbStarted(msg)
 	case crawlerStartedMsg:
@@ -124,6 +127,12 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+c", "q":
 		m.quitting = true
 		return m, tea.Quit
+	case "1", "2", "3", "4", "5", "6":
+		index := int(msg.String()[0]-'1')
+		if index >= 0 && index < len(m.choices) {
+			m.cursor = index
+			return m.executeSelection(index)
+		}
 	case "up", "k":
 		if m.cursor > 0 {
 			m.cursor--
@@ -136,6 +145,41 @@ func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.executeSelection(m.cursor)
 	}
 	return m, nil
+}
+
+func (m model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
+		if m.cursor > 0 {
+			m.cursor--
+		}
+		return m, nil
+	case tea.MouseButtonWheelDown:
+		if m.cursor < len(m.choices)-1 {
+			m.cursor++
+		}
+		return m, nil
+	case tea.MouseButtonLeft:
+		if msg.Action != tea.MouseActionRelease {
+			return m, nil
+		}
+		if idx, ok := menuIndexFromY(msg.Y, len(m.choices)); ok {
+			m.cursor = idx
+			return m.executeSelection(idx)
+		}
+		// Fallback: run current selection when click position is outside item rows.
+		return m.executeSelection(m.cursor)
+	default:
+		return m, nil
+	}
+}
+
+func menuIndexFromY(y int, count int) (int, bool) {
+	idx := y - menuStartY
+	if idx < 0 || idx >= count {
+		return 0, false
+	}
+	return idx, true
 }
 
 func (m model) handleDbStarted(msg dbStartedMsg) (tea.Model, tea.Cmd) {
@@ -405,7 +449,7 @@ func (m model) getItemStatus(i int) (bool, bool) {
 }
 
 func main() {
-	p := tea.NewProgram(initialModel())
+	p := tea.NewProgram(initialModel(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
