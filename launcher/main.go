@@ -65,6 +65,12 @@ type model struct {
 	msg string // Status message
 }
 
+const (
+	apiBaseURL   = "http://127.0.0.1:3202"
+	swaggerURL   = "http://127.0.0.1:3202/docs"
+	frontendURL  = "http://127.0.0.1:3203"
+)
+
 func initialModel() model {
 	return model{
 		choices: []string{
@@ -159,7 +165,7 @@ func (m model) handleApiStarted(msg apiStartedMsg) (tea.Model, tea.Cmd) {
 		m.msg = fmt.Sprintf("Error starting API: %v", msg.err)
 	} else {
 		m.apiStatus = statusDone
-		m.msg = "API terminal opened. Now you can start the Frontend."
+		m.msg = fmt.Sprintf("API terminal opened. Swagger: %s", swaggerURL)
 		if m.cursor == 2 {
 			m.cursor = 3
 		}
@@ -172,7 +178,7 @@ func (m model) handleFrontendStarted(msg frontendStartedMsg) (tea.Model, tea.Cmd
 		m.msg = fmt.Sprintf("Error starting Frontend: %v", msg.err)
 	} else {
 		m.frontendStatus = statusDone
-		m.msg = "Frontend terminal opened. Happy coding!"
+		m.msg = fmt.Sprintf("Frontend terminal opened: %s", frontendURL)
 	}
 	return m, nil
 }
@@ -292,6 +298,7 @@ func (m model) View() string {
 	}
 
 	s += guideStyle.Render("\n" + m.msg + "\n")
+	s += guideStyle.Render(fmt.Sprintf("API: %s | Swagger: %s | Frontend: %s\n", apiBaseURL, swaggerURL, frontendURL))
 	s += quitStyle.Render("\nPress q to quit.\n")
 	return s
 }
