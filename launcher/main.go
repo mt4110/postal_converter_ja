@@ -32,6 +32,11 @@ var (
 				PaddingLeft(2).
 				Foreground(lipgloss.Color("170"))
 
+	loadingItemStyle = lipgloss.NewStyle().
+				PaddingLeft(2).
+				Foreground(lipgloss.Color("226")).
+				Bold(true)
+
 	disabledItemStyle = lipgloss.NewStyle().
 				PaddingLeft(2).
 				Foreground(lipgloss.Color("#626262"))
@@ -46,6 +51,11 @@ var (
 			MarginTop(1).
 			Foreground(lipgloss.Color("#00D7FF")).
 			Italic(true)
+
+	loadingGuideStyle = lipgloss.NewStyle().
+				MarginTop(1).
+				Foreground(lipgloss.Color("226")).
+				Bold(true)
 )
 
 type status int
@@ -60,6 +70,7 @@ type model struct {
 	cursor   int
 	quitting bool
 	loading  bool
+	loadingIndex int
 	loadingLabel string
 	spinnerIndex int
 
@@ -108,6 +119,7 @@ func initialModel() model {
 		crawlerStatus:  statusPending,
 		apiStatus:      statusPending,
 		frontendStatus: statusPending,
+		loadingIndex:   -1,
 		msg:            msg,
 	}
 }
@@ -242,6 +254,7 @@ func menuIndexFromY(y int, count int) (int, bool) {
 
 func (m model) handleDbStarted(msg dbStartedMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
+	m.loadingIndex = -1
 	m.loadingLabel = ""
 	if msg.err != nil {
 		m.msg = fmt.Sprintf("Error starting DB: %v", msg.err)
@@ -257,6 +270,7 @@ func (m model) handleDbStarted(msg dbStartedMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleCrawlerStarted(msg crawlerStartedMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
+	m.loadingIndex = -1
 	m.loadingLabel = ""
 	if msg.err != nil {
 		m.msg = fmt.Sprintf("Error starting Crawler: %v", msg.err)
@@ -269,6 +283,7 @@ func (m model) handleCrawlerStarted(msg crawlerStartedMsg) (tea.Model, tea.Cmd) 
 
 func (m model) handleApiStarted(msg apiStartedMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
+	m.loadingIndex = -1
 	m.loadingLabel = ""
 	if msg.err != nil {
 		m.msg = fmt.Sprintf("Error starting API: %v", msg.err)
@@ -286,6 +301,7 @@ func (m model) handleApiStarted(msg apiStartedMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleFrontendStarted(msg frontendStartedMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
+	m.loadingIndex = -1
 	m.loadingLabel = ""
 	if msg.err != nil {
 		m.msg = fmt.Sprintf("Error starting Frontend: %v", msg.err)
@@ -300,6 +316,7 @@ func (m model) handleFrontendStarted(msg frontendStartedMsg) (tea.Model, tea.Cmd
 
 func (m model) handleDbStopped(msg dbStoppedMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
+	m.loadingIndex = -1
 	m.loadingLabel = ""
 	if msg.err != nil {
 		m.msg = fmt.Sprintf("Error stopping DB: %v", msg.err)
@@ -322,6 +339,7 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 	case 0: // Start Databases
 		m.msg = "Starting databases..."
 		m.loading = true
+		m.loadingIndex = index
 		m.loadingLabel = "Starting Databases"
 		m.spinnerIndex = 0
 		return m, tea.Batch(
@@ -341,6 +359,7 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		}
 		m.msg = "Opening Crawler terminal..."
 		m.loading = true
+		m.loadingIndex = index
 		m.loadingLabel = "Starting Crawler"
 		m.spinnerIndex = 0
 		return m, tea.Batch(
@@ -364,6 +383,7 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		}
 		m.msg = "Starting API process..."
 		m.loading = true
+		m.loadingIndex = index
 		m.loadingLabel = "Starting API"
 		m.spinnerIndex = 0
 		return m, tea.Batch(
@@ -396,6 +416,7 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 		}
 		m.msg = "Starting Frontend process..."
 		m.loading = true
+		m.loadingIndex = index
 		m.loadingLabel = "Starting Frontend"
 		m.spinnerIndex = 0
 		return m, tea.Batch(
@@ -424,6 +445,7 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 	case 4: // Stop Databases
 		m.msg = "Stopping databases..."
 		m.loading = true
+		m.loadingIndex = index
 		m.loadingLabel = "Stopping Databases"
 		m.spinnerIndex = 0
 		return m, tea.Batch(
@@ -648,7 +670,7 @@ func (m model) View() string {
 	}
 
 	if m.loading {
-		s += guideStyle.Render(
+		s += loadingGuideStyle.Render(
 			fmt.Sprintf("\n%s %s ...\n", m.loadingLabel, spinnerFrames[m.spinnerIndex]),
 		)
 	}
@@ -665,14 +687,19 @@ func (m model) renderItem(i int, choice string) string {
 	}
 
 	isEnabled, isDone := m.getItemStatus(i)
+	isLoadingItem := m.loading && i == m.loadingIndex
 
 	label := choice
-	if isDone {
+	if isLoadingItem {
+		label = fmt.Sprintf("%s  %s Loading...", choice, spinnerFrames[m.spinnerIndex])
+	} else if isDone {
 		label = fmt.Sprintf("%s %s", choice, checkMark)
 	}
 
 	if !isEnabled {
 		return disabledItemStyle.Render(fmt.Sprintf("%s %s (Locked 🔒)", cursor, choice)) + "\n"
+	} else if isLoadingItem {
+		return loadingItemStyle.Render(fmt.Sprintf("%s %s", cursor, label)) + "\n"
 	} else if m.cursor == i {
 		return selectedItemStyle.Render(fmt.Sprintf("%s %s", cursor, label)) + "\n"
 	} else {
