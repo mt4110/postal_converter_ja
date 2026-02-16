@@ -48,7 +48,8 @@ export class PostalSdk {
 
   constructor(options: PostalSdkOptions = {}) {
     this.baseUrl = (options.baseUrl ?? DEFAULT_API_BASE).replace(/\/$/, "");
-    this.fetcher = options.fetcher ?? fetch;
+    const fetcher = options.fetcher ?? globalThis.fetch;
+    this.fetcher = fetcher === globalThis.fetch ? globalThis.fetch.bind(globalThis) : fetcher;
   }
 
   async lookupZip(zipInput: string): Promise<PostalCodeRecord[]> {

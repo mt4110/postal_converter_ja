@@ -13,7 +13,12 @@ Built with Go and Bubbletea, providing a rich TUI (Text User Interface).
 Run the following command from the project root:
 
 ```bash
-cd launcher
+nix develop --command go run ./launcher/main.go
+```
+
+If you are already inside the `launcher` directory, use:
+
+```bash
 nix develop --command go run main.go
 ```
 

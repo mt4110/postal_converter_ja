@@ -13,7 +13,12 @@ Go 言語と Bubbletea を使用し、リッチな TUI（テキストユーザ�
 プロジェクトルートで以下のコマンドを実行してください：
 
 ```bash
-cd launcher
+nix develop --command go run ./launcher/main.go
+```
+
+`launcher` ディレクトリ内で実行する場合は次です。
+
+```bash
 nix develop --command go run main.go
 ```
 

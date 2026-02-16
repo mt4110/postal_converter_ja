@@ -1,0 +1,134 @@
+# v0.9.0 Runbook 着手計画 (`feature/v0.9.0`)
+
+最終更新: 2026-02-14 (JST)  
+目的: `v0.9.0` を「運用で回せる状態」まで最短で持っていくための、実行順序固定の計画書。
+
+## 0. 取り込み元 (v0.9 要件の統合)
+
+この計画は以下の既存ドキュメントの `v0.9` 要件を統合しています。
+
+- `docs/V0_7_TO_V1_EXECUTION_PLAN.md` の v0.9.0 (Operations Readiness)
+- `docs/ROADMAP_PRIVATE_v0.4_to_v1.0.md` の feature/v0.9.0 (販売運用完成)
+- `RELEASE_NOTES.md` の「次の焦点 (v0.9.0)」
+- `docs/HANDOFF_v0.8.3.md` の v0.9.0 方向性 (運用強化)
+
+### 0.1 非公開ソースの扱い
+
+- `docs/ROADMAP_PRIVATE_v0.4_to_v1.0.md` は内部参照専用。
+- 公開向けドキュメントへ転記する場合は、当該参照行を削除する。
+
+## 1. v0.9.0 のスコープ
+
+### 1.1 In Scope (今回やること)
+
+- SLO/SLI の定義・可視化・アラートしきい値の固定
+- 障害 Runbook 3本の標準化
+- 月次運用監査レポートのテンプレート化
+- 営業 -> 導入 -> 運用引き継ぎフローの型化
+- 人間オペレータが Runbook だけで復旧できることの検証
+
+### 1.2 Out of Scope (今回やらないこと)
+
+- 大規模な新機能追加 (検索アルゴリズム刷新など)
+- フル再設計を伴うアーキ変更
+- マルチクラウド本実装 (GCP/Azure) の本番投入  
+  ※要望が強ければ Stretch Goal 扱いで後半に差し込み可能
+
+## 2. マイルストーン
+
+`feature/v0.9.0` ブランチ開始日を Day 0 とした目安です。
+
+| Milestone | 目安 | 完了条件 (Exit) |
+| --- | --- | --- |
+| M0: キックオフ固定 | Day 0 | タスク表・担当・優先度が確定し、未決定事項が明文化されている |
+| M1: 観測基盤確定 | Day 1-4 | SLI/SLO とダッシュボード、アラート閾値がレビュー済み |
+| M2: Runbook 実装 | Day 5-10 | 更新失敗/キャッシュ障害/DBロールバック Runbook が実運用手順として成立 |
+| M3: 人間テスト1周目 | Day 11-14 | 疑似障害を Runbook のみで復旧し、課題一覧が作成済み |
+| M4: 販売運用パック完成 | Day 15-20 | 監査レポートテンプレート + 導入/見積テンプレート + 最終受け入れ完了 |
+
+## 3. タスク表 (実行順序固定)
+
+| ID | 種別 | タスク | 主成果物 | 依存 | 完了条件 (DoD) |
+| --- | --- | --- | --- | --- | --- |
+| OPS-01 | Observability | SLI/SLO 定義の確定 | `docs/SLO_SLI_v0_9_0.md` | - | 指標定義・計測窓・エラーバジェットが明記されている |
+| OPS-02 | Observability | ダッシュボードの標準化 | `docs/DASHBOARD_STANDARD_v0_9_0.md` | OPS-01 | 主要指標が1画面で確認可能 |
+| OPS-03 | Observability | アラート閾値と通知経路の定義 | `docs/ALERT_POLICY_v0_9_0.md` | OPS-01 | P1/P2/P3の判定基準と通知先が固定 |
+| RNB-01 | Runbook | 更新失敗時 Runbook | `docs/RUNBOOK_UPDATE_FAILURE_v0_9_0.md` | OPS-03 | 手順だけで復旧判断まで到達できる |
+| RNB-02 | Runbook | キャッシュ障害 Runbook | `docs/RUNBOOK_CACHE_INCIDENT_v0_9_0.md` | OPS-03 | stale/miss暴走の切り分けが可能 |
+| RNB-03 | Runbook | DBロールバック Runbook | `docs/RUNBOOK_DB_ROLLBACK_v0_9_0.md` | OPS-03 | ロールバック判断・実施・確認が記載済み |
+| AUD-01 | Audit | 月次監査レポート雛形作成 | `docs/MONTHLY_AUDIT_REPORT_TEMPLATE_v0_9_0.md` | RNB-01..03 | 更新履歴/差分/稼働状況を埋められる |
+| BIZ-01 | Sales Ops | 契約/NDA 導入チェック化 | `docs/NDA_ONBOARDING_CHECKLIST_v0_9_0.md` | - | 営業->導入引き継ぎ時の確認漏れが0 |
+| BIZ-02 | Sales Ops | 顧客別導入テンプレ・見積基準 | `docs/CUSTOMER_ONBOARDING_ESTIMATE_TEMPLATE_v0_9_0.md` | BIZ-01 | 工数見積の入力項目と判定ルールが固定 |
+| QA-01 | Human Test | 障害訓練シナリオ作成 | `docs/HUMAN_TEST_SCENARIO_v0_9_0.md` | RNB-01..03 | 3障害 + 1監査生成の訓練脚本が完成 |
+| QA-02 | Human Test | 人間テスト1回目 (ドライラン) | 証跡ログ/改善チケット | QA-01 | 手順詰まりポイントが記録されている |
+| QA-03 | Human Test | Runbook 改訂 | Runbook v2 | QA-02 | 改訂差分と理由が残っている |
+| QA-04 | Human Test | 最終受け入れ (Go/No-Go) | `docs/V0_9_0_ACCEPTANCE.md` | QA-03, AUD-01, BIZ-02 | Exit Criteriaを満たす判定結果がある |
+
+## 4. 人間テスト計画 (必須)
+
+### 4.1 目的
+
+- 「ツールの知識が薄い担当者」でも、Runbook のみで復旧/報告まで完遂できるかを検証する。
+
+### 4.2 体制
+
+- 進行役: 1名 (シナリオ提示・時間管理)
+- 実行者: 2名 (一次対応担当 / 監査記録担当)
+- 観察者: 1名 (詰まり箇所・曖昧表現を記録)
+
+### 4.3 シナリオ一覧
+
+| Scenario | 役割 | 想定時間 | 合格条件 | 必須証跡 |
+| --- | --- | --- | --- | --- |
+| HT-01 更新失敗 | 一次対応担当 | 30分 | 原因切り分けと復旧/停止判断ができる | タイムライン、判断理由 |
+| HT-02 キャッシュ障害 | 一次対応担当 | 25分 | staleデータ原因の特定と緩和策実行 | コマンドログ、復旧確認 |
+| HT-03 DBロールバック | 一次対応 + 記録担当 | 40分 | ロールバック判断基準に従い実施できる | 実施前後の検証結果 |
+| HT-04 月次監査レポート作成 | 記録担当 | 30分 | テンプレートを埋めて第三者が追跡可能 | 完成レポート |
+| HT-05 営業->導入引き継ぎ | 進行役 + 記録担当 | 20分 | NDA/契約前提チェック漏れがない | チェックリスト完了版 |
+
+### 4.4 判定ルール
+
+- `Pass`: 手順逸脱なし、判断根拠が証跡で残る
+- `Conditional Pass`: 復旧できたが Runbook の改善が必要
+- `Fail`: 復旧不可、または判断不能で停止
+
+`Fail` が1件でもあれば `QA-03` を再実施し、`QA-04` に進まない。
+
+## 5. Exit Criteria (v0.9.0 完了判定)
+
+- 疑似障害 3種を Runbook のみで処理可能
+- 月次監査レポートを定義入力から生成可能
+- 営業 -> 導入 -> 運用引き継ぎがテンプレートで再現可能
+- 仕様書/運用書/販売資料で用語不一致がない
+
+## 6. 調整しやすい削減候補 (不要なら削る)
+
+- `BIZ-02` の見積基準を v0.9.1 へ後ろ倒し
+- `OPS-02` のダッシュボードを最小指標 (Latency/Error/Throughput) のみに限定
+- `HT-05` を初回は机上演習に変更し、実施負荷を下げる
+
+## 7. PRマージ後の開始チェックリスト
+
+1. `feature/v0.9.0` を作成
+2. 本ドキュメントのタスク担当欄を確定
+3. `OPS-01` から着手し、`QA-04` まで順序固定で実行
+4. 各タスク完了時に成果物パスを追記
+
+## 8. Issue 化ルール (v0.9.xxx)
+
+- 本書のタスクID (`OPS-*`, `RNB-*`, `AUD-*`, `BIZ-*`, `QA-*`) をそのまま Issue タイトルへ含める。
+- バージョン表記は `v0.9.xxx` で統一し、該当 Issue で解決する。
+- 例: `[v0.9.0][OPS-01] SLI/SLO 定義の確定`
+
+## 9. 進捗ログ
+
+- 2026-02-14: `OPS-01` の成果物として `docs/SLO_SLI_v0_9_0.md` を作成。
+- 2026-02-14: `OPS-02` の成果物として `docs/DASHBOARD_STANDARD_v0_9_0.md` を作成。
+- 2026-02-14: `OPS-03` の成果物として `docs/ALERT_POLICY_v0_9_0.md` を作成。
+- 2026-02-14: `RNB-01` の成果物として `docs/RUNBOOK_UPDATE_FAILURE_v0_9_0.md` を作成。
+- 2026-02-14: `RNB-02` の成果物として `docs/RUNBOOK_CACHE_INCIDENT_v0_9_0.md` を作成。
+- 2026-02-14: `RNB-03` の成果物として `docs/RUNBOOK_DB_ROLLBACK_v0_9_0.md` を作成。
+- 2026-02-14: `AUD-01` の成果物として `docs/MONTHLY_AUDIT_REPORT_TEMPLATE_v0_9_0.md` を作成。
+- 2026-02-14: `BIZ-01` の成果物として `docs/NDA_ONBOARDING_CHECKLIST_v0_9_0.md` を作成。
+- 2026-02-14: `BIZ-02` の成果物として `docs/CUSTOMER_ONBOARDING_ESTIMATE_TEMPLATE_v0_9_0.md` を作成。
+- 2026-02-14: `QA-01` の成果物として `docs/HUMAN_TEST_SCENARIO_v0_9_0.md` を作成。

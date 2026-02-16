@@ -11,3 +11,11 @@ infra/terraform/**/*.tfstate
 infra/terraform/**/*.tfstate.*
 infra/terraform/**/tfplan
 docs/SALES_READINESS_PLAN_2026Q2.md
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# local recovery / tooling artifacts
+.git.broken_*
+.trunk/
