@@ -17,7 +17,7 @@ mysql_async = { version = "0.36.1", default-features = false, features = [
     "default",
 ] }
 utoipa = { version = "5", features = ["axum_extras"] }
-redis = { version = "0.32", features = ["tokio-comp", "connection-manager"] }
+redis = { version = "1.0", features = ["tokio-comp", "connection-manager"] }
 rusqlite = { version = "0.33", features = ["bundled"] }
 unicode-normalization = "0.1"
 ipnet = "2"
