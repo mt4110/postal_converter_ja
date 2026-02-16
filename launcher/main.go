@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -62,6 +63,8 @@ type model struct {
 	crawlerStatus  status
 	apiStatus      status
 	frontendStatus status
+	apiCmd         *exec.Cmd
+	frontendCmd    *exec.Cmd
 
 	msg string // Status message
 }
@@ -71,6 +74,8 @@ const (
 	swaggerURL  = "http://127.0.0.1:3202/docs"
 	frontendURL = "http://127.0.0.1:3203"
 	menuStartY  = 6
+	apiLogPath  = "/tmp/postal_converter_ja_api.log"
+	feLogPath   = "/tmp/postal_converter_ja_frontend.log"
 )
 
 func initialModel() model {
@@ -78,8 +83,8 @@ func initialModel() model {
 		choices: []string{
 			"🚀 Start Databases (Docker)",
 			"🕷️  Start Crawler (New Terminal)",
-			"🔌 Start API Server (New Terminal)",
-			"💻 Start Frontend (New Terminal)",
+			"🔌 Start API Server",
+			"💻 Start Frontend",
 			"🛑 Stop Databases",
 			"🚪 Exit",
 		},
@@ -98,8 +103,14 @@ func (m model) Init() tea.Cmd {
 // Custom messages for state updates
 type dbStartedMsg struct{ err error }
 type crawlerStartedMsg struct{ err error }
-type apiStartedMsg struct{ err error }
-type frontendStartedMsg struct{ err error }
+type apiStartedMsg struct {
+	err error
+	cmd *exec.Cmd
+}
+type frontendStartedMsg struct {
+	err error
+	cmd *exec.Cmd
+}
 type dbStoppedMsg struct{ err error }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -210,7 +221,8 @@ func (m model) handleApiStarted(msg apiStartedMsg) (tea.Model, tea.Cmd) {
 		m.msg = fmt.Sprintf("Error starting API: %v", msg.err)
 	} else {
 		m.apiStatus = statusDone
-		m.msg = fmt.Sprintf("API terminal opened. Swagger: %s", swaggerURL)
+		m.apiCmd = msg.cmd
+		m.msg = fmt.Sprintf("API started. Swagger: %s (log: %s)", swaggerURL, apiLogPath)
 		if m.cursor == 2 {
 			m.cursor = 3
 		}
@@ -223,7 +235,8 @@ func (m model) handleFrontendStarted(msg frontendStartedMsg) (tea.Model, tea.Cmd
 		m.msg = fmt.Sprintf("Error starting Frontend: %v", msg.err)
 	} else {
 		m.frontendStatus = statusDone
-		m.msg = fmt.Sprintf("Frontend terminal opened: %s", frontendURL)
+		m.frontendCmd = msg.cmd
+		m.msg = fmt.Sprintf("Frontend started: %s (log: %s)", frontendURL, feLogPath)
 	}
 	return m, nil
 }
@@ -232,10 +245,14 @@ func (m model) handleDbStopped(msg dbStoppedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
 		m.msg = fmt.Sprintf("Error stopping DB: %v", msg.err)
 	} else {
+		killManagedProcess(m.apiCmd)
+		killManagedProcess(m.frontendCmd)
 		m.dbStatus = statusPending
 		m.crawlerStatus = statusPending
 		m.apiStatus = statusPending
 		m.frontendStatus = statusPending
+		m.apiCmd = nil
+		m.frontendCmd = nil
 		m.msg = "Databases stopped. Resetting state."
 		m.cursor = 0
 	}
@@ -275,38 +292,52 @@ func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 			m.msg = "⚠️  Please start Databases first!"
 			return m, nil
 		}
-		m.msg = "Opening API terminal..."
+		m.msg = "Starting API process..."
 		return m, func() tea.Msg {
+			if isURLReady(swaggerURL, 2*time.Second) {
+				return apiStartedMsg{cmd: m.apiCmd}
+			}
 			projectRoot := projectRootDir()
-			err := openInTerminal(
+			cmd, err := startManagedProcess(
 				fmt.Sprintf(
 					"cd '%s' && nix develop --command bash -lc 'cd worker/api && DATABASE_TYPE=postgres POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db REDIS_URL=redis://127.0.0.1:3206 cargo run --release --bin api'",
 					projectRoot,
 				),
+				apiLogPath,
 			)
 			if err == nil {
-				err = waitForURL(swaggerURL, 180*time.Second)
+				err = waitForURLOrProcessExit(cmd, swaggerURL, 90*time.Second)
 			}
-			return apiStartedMsg{err}
+			if err != nil {
+				return apiStartedMsg{err: fmt.Errorf("%w (log: %s)", err, apiLogPath)}
+			}
+			return apiStartedMsg{cmd: cmd}
 		}
 	case 3: // Start Frontend
 		if m.apiStatus != statusDone {
 			m.msg = "⚠️  Please start API first!"
 			return m, nil
 		}
-		m.msg = "Opening Frontend terminal..."
+		m.msg = "Starting Frontend process..."
 		return m, func() tea.Msg {
+			if isURLReady(frontendURL, 2*time.Second) {
+				return frontendStartedMsg{cmd: m.frontendCmd}
+			}
 			projectRoot := projectRootDir()
-			err := openInTerminal(
+			cmd, err := startManagedProcess(
 				fmt.Sprintf(
 					"cd '%s' && nix develop --command bash -lc 'cd frontend && if [ ! -d node_modules ]; then yarn install --frozen-lockfile || yarn install; fi && yarn dev'",
 					projectRoot,
 				),
+				feLogPath,
 			)
 			if err == nil {
-				err = waitForURL(frontendURL, 180*time.Second)
+				err = waitForURLOrProcessExit(cmd, frontendURL, 90*time.Second)
 			}
-			return frontendStartedMsg{err}
+			if err != nil {
+				return frontendStartedMsg{err: fmt.Errorf("%w (log: %s)", err, feLogPath)}
+			}
+			return frontendStartedMsg{cmd: cmd}
 		}
 	case 4: // Stop Databases
 		m.msg = "Stopping databases..."
@@ -333,6 +364,64 @@ func runDockerCompose(args ...string) error {
 		return nil
 	}
 	return runCommand("docker-compose", args...)
+}
+
+func startManagedProcess(command string, logPath string) (*exec.Cmd, error) {
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.Command("bash", "-lc", command)
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	if err := cmd.Start(); err != nil {
+		_ = logFile.Close()
+		return nil, err
+	}
+	_ = logFile.Close()
+	return cmd, nil
+}
+
+func killManagedProcess(cmd *exec.Cmd) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	_ = cmd.Process.Kill()
+}
+
+func isURLReady(url string, timeout time.Duration) bool {
+	client := &http.Client{Timeout: timeout}
+	resp, err := client.Get(url)
+	if err != nil {
+		return false
+	}
+	_ = resp.Body.Close()
+	return resp.StatusCode >= 200 && resp.StatusCode < 500
+}
+
+func isProcessAlive(cmd *exec.Cmd) bool {
+	if cmd == nil || cmd.Process == nil {
+		return false
+	}
+	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+		return false
+	}
+	return cmd.Process.Signal(syscall.Signal(0)) == nil
+}
+
+func waitForURLOrProcessExit(cmd *exec.Cmd, url string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if isURLReady(url, 2*time.Second) {
+			return nil
+		}
+		if !isProcessAlive(cmd) {
+			return fmt.Errorf("process exited before service became ready at %s", url)
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return fmt.Errorf("service did not become ready at %s within %s", url, timeout)
 }
 
 func waitForPostgresReady(timeout time.Duration) error {
