@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -76,9 +78,20 @@ const (
 	menuStartY  = 6
 	apiLogPath  = "/tmp/postal_converter_ja_api.log"
 	feLogPath   = "/tmp/postal_converter_ja_frontend.log"
+	pidStatePath = "/tmp/postal_converter_ja_launcher_pids.json"
 )
 
+type pidState struct {
+	APIPID      int `json:"api_pid"`
+	FrontendPID int `json:"frontend_pid"`
+}
+
 func initialModel() model {
+	msg := "Please start the Databases first."
+	if cleaned, _ := cleanupStaleManagedProcesses(); cleaned > 0 {
+		msg = fmt.Sprintf("Recovered %d stale process(es). Please start the Databases first.", cleaned)
+	}
+
 	return model{
 		choices: []string{
 			"🚀 Start Databases (Docker)",
@@ -92,7 +105,7 @@ func initialModel() model {
 		crawlerStatus:  statusPending,
 		apiStatus:      statusPending,
 		frontendStatus: statusPending,
-		msg:            "Please start the Databases first.",
+		msg:            msg,
 	}
 }
 
@@ -136,6 +149,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "ctrl+c", "q":
+		cleanupManagedProcesses(m.apiCmd, m.frontendCmd)
 		m.quitting = true
 		return m, tea.Quit
 	case "1", "2", "3", "4", "5", "6":
@@ -222,6 +236,7 @@ func (m model) handleApiStarted(msg apiStartedMsg) (tea.Model, tea.Cmd) {
 	} else {
 		m.apiStatus = statusDone
 		m.apiCmd = msg.cmd
+		persistManagedPIDs(m.apiCmd, m.frontendCmd)
 		m.msg = fmt.Sprintf("API started. Swagger: %s (log: %s)", swaggerURL, apiLogPath)
 		if m.cursor == 2 {
 			m.cursor = 3
@@ -236,6 +251,7 @@ func (m model) handleFrontendStarted(msg frontendStartedMsg) (tea.Model, tea.Cmd
 	} else {
 		m.frontendStatus = statusDone
 		m.frontendCmd = msg.cmd
+		persistManagedPIDs(m.apiCmd, m.frontendCmd)
 		m.msg = fmt.Sprintf("Frontend started: %s (log: %s)", frontendURL, feLogPath)
 	}
 	return m, nil
@@ -245,8 +261,7 @@ func (m model) handleDbStopped(msg dbStoppedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
 		m.msg = fmt.Sprintf("Error stopping DB: %v", msg.err)
 	} else {
-		killManagedProcess(m.apiCmd)
-		killManagedProcess(m.frontendCmd)
+		cleanupManagedProcesses(m.apiCmd, m.frontendCmd)
 		m.dbStatus = statusPending
 		m.crawlerStatus = statusPending
 		m.apiStatus = statusPending
@@ -388,6 +403,83 @@ func killManagedProcess(cmd *exec.Cmd) {
 		return
 	}
 	_ = cmd.Process.Kill()
+}
+
+func cleanupManagedProcesses(apiCmd, frontendCmd *exec.Cmd) {
+	killManagedProcess(apiCmd)
+	killManagedProcess(frontendCmd)
+	_, _ = cleanupStaleManagedProcesses()
+}
+
+func persistManagedPIDs(apiCmd, frontendCmd *exec.Cmd) {
+	state := pidState{}
+	if apiCmd != nil && apiCmd.Process != nil {
+		state.APIPID = apiCmd.Process.Pid
+	}
+	if frontendCmd != nil && frontendCmd.Process != nil {
+		state.FrontendPID = frontendCmd.Process.Pid
+	}
+	if state.APIPID == 0 && state.FrontendPID == 0 {
+		_ = os.Remove(pidStatePath)
+		return
+	}
+	b, err := json.Marshal(state)
+	if err != nil {
+		return
+	}
+	_ = os.WriteFile(pidStatePath, b, 0o644)
+}
+
+func cleanupStaleManagedProcesses() (int, error) {
+	b, err := os.ReadFile(pidStatePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	var state pidState
+	if err := json.Unmarshal(b, &state); err != nil {
+		_ = os.Remove(pidStatePath)
+		return 0, err
+	}
+
+	killed := 0
+	for _, pid := range []int{state.APIPID, state.FrontendPID} {
+		if pid <= 0 {
+			continue
+		}
+		if isManagedPID(pid) && isPIDAlive(pid) {
+			if p, err := os.FindProcess(pid); err == nil {
+				_ = p.Signal(syscall.SIGKILL)
+				killed++
+			}
+		}
+	}
+	_ = os.Remove(pidStatePath)
+	return killed, nil
+}
+
+func isPIDAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	err := syscall.Kill(pid, 0)
+	return err == nil || err == syscall.EPERM
+}
+
+func isManagedPID(pid int) bool {
+	out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=").Output()
+	if err != nil {
+		return false
+	}
+	cmdline := string(out)
+	if !strings.Contains(cmdline, "postal_converter_ja") {
+		return false
+	}
+	isAPI := strings.Contains(cmdline, "worker/api") || strings.Contains(cmdline, "cargo run --release --bin api")
+	isFrontend := strings.Contains(cmdline, "cd frontend") || strings.Contains(cmdline, "yarn dev")
+	return isAPI || isFrontend
 }
 
 func isURLReady(url string, timeout time.Duration) bool {
