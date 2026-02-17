@@ -404,8 +404,8 @@ CI でも同等チェック（fmt/validate）を実行します。
 
 - [x] **v0.9.0 Release整合**: `v0.9.0` タグ範囲に合わせてリリースノートを更新（`#84`-`#91`）
 - [x] **README整備**: 古い参照更新（`--ref v0.9.0`）と Markdown lint 指摘の解消
-- [ ] **Docs棚卸し**: 不要DOCの削除候補と `.gitignore` 化方針を整理
-- [ ] **複雑度の高い箇所の改修**: 複雑度 15 超を対象に段階的リファクタ
+- [x] **Docs棚卸し**: 不要DOCの削除候補と `.gitignore` 化方針を整理（`docs/DOCS_INVENTORY_v0_9_1.md`）
+- [x] **複雑度の高い箇所の改修**: `launcher/main.go` の `executeSelection` を分割して段階的リファクタを実施
 
 ### v0.8.x 実績（デプロイ基盤）
 
