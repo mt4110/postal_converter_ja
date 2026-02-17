@@ -348,14 +348,14 @@ Terraform 関連の実行コマンド:
 ```bash
 ./scripts/setup_github_oidc_vars.sh
 ./scripts/run_terraform_workflow.sh
-./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref feature/v0.8.0
+./scripts/run_terraform_workflow.sh --action destroy --environment dev --confirm-destroy DESTROY_AWS --ref v0.9.0
 nix develop --command terraform version
 ```
 
 `terraform` がローカルシェルで見えない場合は Nix dev shell 経由で実行してください（Nix では OpenTofu 互換の `terraform` コマンドを提供）。  
 Homebrew 経由では `terraform` が 1.5.7 固定になることがあるため、バージョン差異を避ける目的でも Nix を推奨します。
 
-Terraform/OpenTofu バージョン方針（v0.8）:
+Terraform/OpenTofu バージョン方針（v0.9）:
 
 - 最小要件: `>= 1.6.0`（`infra/terraform/platforms/aws/main.tf`）
 - CI 固定: `1.11.1`（`.github/workflows/terraform-multiplatform.yml`）
@@ -372,23 +372,22 @@ CI でも同等チェック（fmt/validate）を実行します。
 
 👉 **SQLite 配布ワークフロー（GitHub Actions 手動実行）:** `.github/workflows/sqlite-release.yml`
 
-
 ## ライセンスと商用利用について
 
 本プロジェクトは、**デュアルライセンス**（Dual Licensing）を採用する予定です。
 
-1.  **個人利用・非営利・オープンソース開発**:
+1. **個人利用・非営利・オープンソース開発**:
 
     - **MIT License** の下、自由に利用・改変・再配布が可能です。
     - 学習目的や個人プロジェクトでぜひご活用ください。
 
-2.  **法人利用・商用サービスへの組み込み**:
+2. **法人利用・商用サービスへの組み込み**:
     - 企業での業務利用や、商用製品への組み込みを行う場合は、**商用ライセンス**の契約、または**GitHub Sponsors**等による継続的な支援をお願いすることを想定しています。
     - （現在はプレビュー版のため、評価目的での利用は無償です。本格導入の際はご連絡ください）
 
 このモデルにより、オープンソースとしての発展と、持続可能な開発体制の両立を目指しています。
 
-## ロードマップ (TODO)
+## ロードマップ
 
 実行順序とマイルストーンは `docs/V0_7_TO_V1_EXECUTION_PLAN.md` を参照してください。
 
@@ -401,7 +400,14 @@ CI でも同等チェック（fmt/validate）を実行します。
 - [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize/ArgoCD 含む）
 - [x] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
 
-### v0.8.x フォーカス（デプロイ基盤の仕上げ）
+### v0.9.1 フォーカス（非人間修正・整頓）
+
+- [x] **v0.9.0 Release整合**: `v0.9.0` タグ範囲に合わせてリリースノートを更新（`#84`-`#91`）
+- [x] **README整備**: 古い参照更新（`--ref v0.9.0`）と Markdown lint 指摘の解消
+- [ ] **Docs棚卸し**: 不要DOCの削除候補と `.gitignore` 化方針を整理
+- [ ] **複雑度の高い箇所の改修**: 複雑度 15 超を対象に段階的リファクタ
+
+### v0.8.x 実績（デプロイ基盤）
 
 - [x] **AWS先行IaC運用**: GitHub Actions + Terraform の `validate/plan/apply/destroy` を `dev` で実行可能化
 - [x] **環境分離**: `dev/stg/prod` の `aws.tfvars` を追加
@@ -412,7 +418,7 @@ CI でも同等チェック（fmt/validate）を実行します。
 
 ## バージョン
 
-**v0.8.0 (Beta)** - Deployment baseline with AWS-first Terraform workflow
+**v0.9.0 (Beta)** - Operations readiness package and launcher UX hardening
 
 ## 貢献について (Contributing)
 
