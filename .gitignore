@@ -11,6 +11,7 @@ infra/terraform/**/*.tfstate
 infra/terraform/**/*.tfstate.*
 infra/terraform/**/tfplan
 docs/SALES_READINESS_PLAN_2026Q2.md
+docs/*_LOCAL.md
 
 # macOS
 .DS_Store

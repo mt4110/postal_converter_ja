@@ -336,130 +336,144 @@ func (m model) handleDbStopped(msg dbStoppedMsg) (tea.Model, tea.Cmd) {
 
 func (m model) executeSelection(index int) (tea.Model, tea.Cmd) {
 	switch index {
-	case 0: // Start Databases
-		m.msg = "Starting databases..."
-		m.loading = true
-		m.loadingIndex = index
-		m.loadingLabel = "Starting Databases"
-		m.spinnerIndex = 0
-		return m, tea.Batch(
-			spinnerTickCmd(),
-			func() tea.Msg {
-				err := runDockerCompose("--profile", "cache", "up", "-d", "postgres", "redis")
-				if err == nil {
-					err = waitForPostgresReady(90 * time.Second)
-				}
-				return dbStartedMsg{err}
-			},
-		)
-	case 1: // Start Crawler
-		if m.dbStatus != statusDone {
-			m.msg = "⚠️  Please start Databases first!"
-			return m, nil
-		}
-		m.msg = "Opening Crawler terminal..."
-		m.loading = true
-		m.loadingIndex = index
-		m.loadingLabel = "Starting Crawler"
-		m.spinnerIndex = 0
-		return m, tea.Batch(
-			spinnerTickCmd(),
-			func() tea.Msg {
-				projectRoot := projectRootDir()
-				err := openInTerminal(
-					fmt.Sprintf(
-						"cd '%s' && nix develop --command bash -lc 'cd worker/crawler && DATABASE_TYPE=postgres POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db REDIS_URL=redis://127.0.0.1:3206 cargo run --release --bin crawler'",
-						projectRoot,
-					),
-				)
-				time.Sleep(500 * time.Millisecond)
-				return crawlerStartedMsg{err}
-			},
-		)
-	case 2: // Start API
-		if m.dbStatus != statusDone {
-			m.msg = "⚠️  Please start Databases first!"
-			return m, nil
-		}
-		m.msg = "Starting API process..."
-		m.loading = true
-		m.loadingIndex = index
-		m.loadingLabel = "Starting API"
-		m.spinnerIndex = 0
-		return m, tea.Batch(
-			spinnerTickCmd(),
-			func() tea.Msg {
-				if isURLReady(swaggerURL, 2*time.Second) {
-					return apiStartedMsg{cmd: m.apiCmd}
-				}
-				projectRoot := projectRootDir()
-				cmd, err := startManagedProcess(
-					fmt.Sprintf(
-						"cd '%s' && nix develop --command bash -lc 'cd worker/api && DATABASE_TYPE=postgres POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db REDIS_URL=redis://127.0.0.1:3206 cargo run --release --bin api'",
-						projectRoot,
-					),
-					apiLogPath,
-				)
-				if err == nil {
-					err = waitForURLOrProcessExit(cmd, swaggerURL, 90*time.Second)
-				}
-				if err != nil {
-					return apiStartedMsg{err: fmt.Errorf("%w (log: %s)", err, apiLogPath)}
-				}
-				return apiStartedMsg{cmd: cmd}
-			},
-		)
-	case 3: // Start Frontend
-		if m.apiStatus != statusDone {
-			m.msg = "⚠️  Please start API first!"
-			return m, nil
-		}
-		m.msg = "Starting Frontend process..."
-		m.loading = true
-		m.loadingIndex = index
-		m.loadingLabel = "Starting Frontend"
-		m.spinnerIndex = 0
-		return m, tea.Batch(
-			spinnerTickCmd(),
-			func() tea.Msg {
-				if isURLReady(frontendURL, 2*time.Second) {
-					return frontendStartedMsg{cmd: m.frontendCmd}
-				}
-				projectRoot := projectRootDir()
-				cmd, err := startManagedProcess(
-					fmt.Sprintf(
-						"cd '%s' && nix develop --command bash -lc 'cd frontend && if [ ! -d node_modules ]; then yarn install --frozen-lockfile || yarn install; fi && yarn dev'",
-						projectRoot,
-					),
-					feLogPath,
-				)
-				if err == nil {
-					err = waitForURLOrProcessExit(cmd, frontendURL, 90*time.Second)
-				}
-				if err != nil {
-					return frontendStartedMsg{err: fmt.Errorf("%w (log: %s)", err, feLogPath)}
-				}
-				return frontendStartedMsg{cmd: cmd}
-			},
-		)
-	case 4: // Stop Databases
-		m.msg = "Stopping databases..."
-		m.loading = true
-		m.loadingIndex = index
-		m.loadingLabel = "Stopping Databases"
-		m.spinnerIndex = 0
-		return m, tea.Batch(
-			spinnerTickCmd(),
-			func() tea.Msg {
-				err := runDockerCompose("--profile", "cache", "down")
-				return dbStoppedMsg{err}
-			},
-		)
-	case 5: // Exit
+	case 0:
+		return m.startDatabasesSelection(index)
+	case 1:
+		return m.startCrawlerSelection(index)
+	case 2:
+		return m.startAPISelection(index)
+	case 3:
+		return m.startFrontendSelection(index)
+	case 4:
+		return m.stopDatabasesSelection(index)
+	case 5:
 		m.quitting = true
 		return m, tea.Quit
 	}
 	return m, nil
+}
+
+func (m model) beginLoading(index int, label string, msg string) model {
+	m.msg = msg
+	m.loading = true
+	m.loadingIndex = index
+	m.loadingLabel = label
+	m.spinnerIndex = 0
+	return m
+}
+
+func (m model) startDatabasesSelection(index int) (tea.Model, tea.Cmd) {
+	m = m.beginLoading(index, "Starting Databases", "Starting databases...")
+	return m, tea.Batch(
+		spinnerTickCmd(),
+		func() tea.Msg {
+			err := runDockerCompose("--profile", "cache", "up", "-d", "postgres", "redis")
+			if err == nil {
+				err = waitForPostgresReady(90 * time.Second)
+			}
+			return dbStartedMsg{err}
+		},
+	)
+}
+
+func (m model) startCrawlerSelection(index int) (tea.Model, tea.Cmd) {
+	if m.dbStatus != statusDone {
+		m.msg = "⚠️  Please start Databases first!"
+		return m, nil
+	}
+
+	m = m.beginLoading(index, "Starting Crawler", "Opening Crawler terminal...")
+	return m, tea.Batch(
+		spinnerTickCmd(),
+		func() tea.Msg {
+			projectRoot := projectRootDir()
+			err := openInTerminal(
+				fmt.Sprintf(
+					"cd '%s' && nix develop --command bash -lc 'cd worker/crawler && DATABASE_TYPE=postgres POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db REDIS_URL=redis://127.0.0.1:3206 cargo run --release --bin crawler'",
+					projectRoot,
+				),
+			)
+			time.Sleep(500 * time.Millisecond)
+			return crawlerStartedMsg{err}
+		},
+	)
+}
+
+func (m model) startAPISelection(index int) (tea.Model, tea.Cmd) {
+	if m.dbStatus != statusDone {
+		m.msg = "⚠️  Please start Databases first!"
+		return m, nil
+	}
+
+	existingCmd := m.apiCmd
+	m = m.beginLoading(index, "Starting API", "Starting API process...")
+	return m, tea.Batch(
+		spinnerTickCmd(),
+		func() tea.Msg {
+			if isURLReady(swaggerURL, 2*time.Second) {
+				return apiStartedMsg{cmd: existingCmd}
+			}
+			projectRoot := projectRootDir()
+			cmd, err := startManagedProcess(
+				fmt.Sprintf(
+					"cd '%s' && nix develop --command bash -lc 'cd worker/api && DATABASE_TYPE=postgres POSTGRES_DATABASE_URL=postgres://postgres:postgres_password@127.0.0.1:3205/zip_code_db REDIS_URL=redis://127.0.0.1:3206 cargo run --release --bin api'",
+					projectRoot,
+				),
+				apiLogPath,
+			)
+			if err == nil {
+				err = waitForURLOrProcessExit(cmd, swaggerURL, 90*time.Second)
+			}
+			if err != nil {
+				return apiStartedMsg{err: fmt.Errorf("%w (log: %s)", err, apiLogPath)}
+			}
+			return apiStartedMsg{cmd: cmd}
+		},
+	)
+}
+
+func (m model) startFrontendSelection(index int) (tea.Model, tea.Cmd) {
+	if m.apiStatus != statusDone {
+		m.msg = "⚠️  Please start API first!"
+		return m, nil
+	}
+
+	existingCmd := m.frontendCmd
+	m = m.beginLoading(index, "Starting Frontend", "Starting Frontend process...")
+	return m, tea.Batch(
+		spinnerTickCmd(),
+		func() tea.Msg {
+			if isURLReady(frontendURL, 2*time.Second) {
+				return frontendStartedMsg{cmd: existingCmd}
+			}
+			projectRoot := projectRootDir()
+			cmd, err := startManagedProcess(
+				fmt.Sprintf(
+					"cd '%s' && nix develop --command bash -lc 'cd frontend && if [ ! -d node_modules ]; then yarn install --frozen-lockfile || yarn install; fi && yarn dev'",
+					projectRoot,
+				),
+				feLogPath,
+			)
+			if err == nil {
+				err = waitForURLOrProcessExit(cmd, frontendURL, 90*time.Second)
+			}
+			if err != nil {
+				return frontendStartedMsg{err: fmt.Errorf("%w (log: %s)", err, feLogPath)}
+			}
+			return frontendStartedMsg{cmd: cmd}
+		},
+	)
+}
+
+func (m model) stopDatabasesSelection(index int) (tea.Model, tea.Cmd) {
+	m = m.beginLoading(index, "Stopping Databases", "Stopping databases...")
+	return m, tea.Batch(
+		spinnerTickCmd(),
+		func() tea.Msg {
+			err := runDockerCompose("--profile", "cache", "down")
+			return dbStoppedMsg{err}
+		},
+	)
 }
 
 func runCommand(name string, args ...string) error {
