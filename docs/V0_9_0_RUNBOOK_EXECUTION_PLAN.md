@@ -1,6 +1,6 @@
 # v0.9.0 Runbook 着手計画 (`feature/v0.9.0`)
 
-最終更新: 2026-02-14 (JST)  
+最終更新: 2026-02-16 (JST)  
 目的: `v0.9.0` を「運用で回せる状態」まで最短で持っていくための、実行順序固定の計画書。
 
 ## 0. 取り込み元 (v0.9 要件の統合)
@@ -60,9 +60,9 @@
 | BIZ-01 | Sales Ops | 契約/NDA 導入チェック化 | `docs/NDA_ONBOARDING_CHECKLIST_v0_9_0.md` | - | 営業->導入引き継ぎ時の確認漏れが0 |
 | BIZ-02 | Sales Ops | 顧客別導入テンプレ・見積基準 | `docs/CUSTOMER_ONBOARDING_ESTIMATE_TEMPLATE_v0_9_0.md` | BIZ-01 | 工数見積の入力項目と判定ルールが固定 |
 | QA-01 | Human Test | 障害訓練シナリオ作成 | `docs/HUMAN_TEST_SCENARIO_v0_9_0.md` | RNB-01..03 | 3障害 + 1監査生成の訓練脚本が完成 |
-| QA-02 | Human Test | 人間テスト1回目 (ドライラン) | 証跡ログ/改善チケット | QA-01 | 手順詰まりポイントが記録されている |
-| QA-03 | Human Test | Runbook 改訂 | Runbook v2 | QA-02 | 改訂差分と理由が残っている |
-| QA-04 | Human Test | 最終受け入れ (Go/No-Go) | `docs/V0_9_0_ACCEPTANCE.md` | QA-03, AUD-01, BIZ-02 | Exit Criteriaを満たす判定結果がある |
+| QA-02 | Human Test | 人間テスト1回目 (ドライラン, v0.9.2へ移管) | 証跡ログ/改善チケット | QA-01 | 手順詰まりポイントが記録されている |
+| QA-03 | Human Test | Runbook 改訂 (v0.9.2へ移管) | Runbook v2 | QA-02 | 改訂差分と理由が残っている |
+| QA-04 | Human Test | 最終受け入れ (Go/No-Go, v0.9.2へ移管) | `docs/V0_9_0_ACCEPTANCE.md` | QA-03, AUD-01, BIZ-02 | Exit Criteriaを満たす判定結果がある |
 
 ## 4. 人間テスト計画 (必須)
 
@@ -132,3 +132,10 @@
 - 2026-02-14: `BIZ-01` の成果物として `docs/NDA_ONBOARDING_CHECKLIST_v0_9_0.md` を作成。
 - 2026-02-14: `BIZ-02` の成果物として `docs/CUSTOMER_ONBOARDING_ESTIMATE_TEMPLATE_v0_9_0.md` を作成。
 - 2026-02-14: `QA-01` の成果物として `docs/HUMAN_TEST_SCENARIO_v0_9_0.md` を作成。
+- 2026-02-16: `QA-02`, `QA-03`, `QA-04` は人間実施が前提のため `v0.9.2` へ繰り越し決定。
+
+## 10. v0.9.2 へ繰り越し (Human Tasks)
+
+- `QA-02`: 人間テスト（ドライラン）を実施し、詰まりポイントを証跡化。
+- `QA-03`: `QA-02` の結果を反映して Runbook を改訂。
+- `QA-04`: 最終受け入れ判定を行い、`docs/V0_9_0_ACCEPTANCE.md` を完成させる。
