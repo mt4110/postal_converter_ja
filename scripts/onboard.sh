@@ -9,6 +9,7 @@ PID_FILE="${LOG_DIR}/pids.env"
 
 API_PID=""
 FRONTEND_PID=""
+COMPOSE_DRIVER=""
 
 usage() {
   cat <<'EOF'
@@ -33,6 +34,37 @@ require_command() {
     echo "Missing command: ${cmd}"
     exit 1
   fi
+}
+
+init_compose_driver() {
+  if docker compose version >/dev/null 2>&1; then
+    COMPOSE_DRIVER="docker compose"
+    return 0
+  fi
+
+  if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_DRIVER="docker-compose"
+    return 0
+  fi
+
+  echo "Missing Docker Compose command."
+  echo "Tried: docker compose, docker-compose"
+  exit 1
+}
+
+compose_cmd() {
+  case "${COMPOSE_DRIVER}" in
+    "docker compose")
+      docker compose "$@"
+      ;;
+    "docker-compose")
+      docker-compose "$@"
+      ;;
+    *)
+      echo "Compose runner is not initialized."
+      exit 1
+      ;;
+  esac
 }
 
 source_nix_env() {
@@ -231,11 +263,12 @@ cd "${ROOT_DIR}"
 
 source_nix_env
 require_command docker
+init_compose_driver
 
 if [ "${ACTION}" = "stop" ]; then
   log "Stopping managed local processes..."
   stop_started_processes
-  docker compose down >/dev/null 2>&1 || true
+  compose_cmd down >/dev/null 2>&1 || true
   log "Stopped. Docker services are down."
   exit 0
 fi
@@ -247,7 +280,7 @@ ensure_env_files
 
 if [ "${PROFILE}" = "dev" ]; then
   log "Profile=dev: starting PostgreSQL + Redis + API + Frontend"
-  docker compose up -d postgres redis
+  compose_cmd up -d postgres redis
   wait_for_postgres
   start_api
   start_frontend
@@ -258,7 +291,7 @@ fi
 
 if [ "${PROFILE}" = "demo" ]; then
   log "Profile=demo: starting PostgreSQL + Redis + one-shot crawler + API + Frontend"
-  docker compose up -d postgres redis
+  compose_cmd up -d postgres redis
   wait_for_postgres
   run_crawler_once
   start_api
@@ -271,11 +304,11 @@ fi
 if [ "${PROFILE}" = "sqlite-release" ]; then
   VERSION_LABEL="$(date -u +%Y%m%d)"
   log "Profile=sqlite-release: starting PostgreSQL + one-shot crawler + packaging"
-  docker compose up -d postgres
+  compose_cmd up -d postgres
   wait_for_postgres
   run_crawler_once
   run_nix "./scripts/package_sqlite_release.sh '${VERSION_LABEL}'"
-  docker compose down >/dev/null 2>&1 || true
+  compose_cmd down >/dev/null 2>&1 || true
 
   cat <<EOF
 
