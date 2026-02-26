@@ -36,9 +36,16 @@ require_command() {
 }
 
 source_nix_env() {
-  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+  local nix_profile_script="/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+  local nix_profile_bin="/nix/var/nix/profiles/default/bin"
+
+  if [ -f "${nix_profile_script}" ]; then
     # shellcheck disable=SC1091
-    source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    source "${nix_profile_script}"
+  fi
+
+  if ! command -v nix >/dev/null 2>&1 && [ -x "${nix_profile_bin}/nix" ]; then
+    export PATH="${nix_profile_bin}:$PATH"
   fi
 }
 
@@ -87,11 +94,27 @@ wait_for_postgres() {
   return 1
 }
 
+assert_port_free() {
+  local port="$1"
+  local label="$2"
+
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if lsof -nP -iTCP:"${port}" -sTCP:LISTEN >/dev/null 2>&1; then
+    echo "${label} could not start because port ${port} is already in use."
+    lsof -nP -iTCP:"${port}" -sTCP:LISTEN || true
+    return 1
+  fi
+}
+
 start_api() {
   if curl -fsS http://127.0.0.1:3202/health >/dev/null 2>&1; then
     log "API already running on 127.0.0.1:3202."
     return 0
   fi
+  assert_port_free "3202" "API"
 
   log "Starting API..."
   nohup nix develop --command bash -lc \
@@ -108,6 +131,7 @@ start_frontend() {
     log "Frontend already running on 127.0.0.1:3203."
     return 0
   fi
+  assert_port_free "3203" "Frontend"
 
   log "Starting Frontend..."
   nohup nix develop --command bash -lc \
@@ -207,22 +231,23 @@ cd "${ROOT_DIR}"
 
 source_nix_env
 require_command docker
-require_command nix
-require_command curl
 
 if [ "${ACTION}" = "stop" ]; then
   log "Stopping managed local processes..."
   stop_started_processes
-  docker compose --profile cache down >/dev/null 2>&1 || true
+  docker compose down >/dev/null 2>&1 || true
   log "Stopped. Docker services are down."
   exit 0
 fi
+
+require_command nix
+require_command curl
 
 ensure_env_files
 
 if [ "${PROFILE}" = "dev" ]; then
   log "Profile=dev: starting PostgreSQL + Redis + API + Frontend"
-  docker compose --profile cache up -d postgres redis
+  docker compose up -d postgres redis
   wait_for_postgres
   start_api
   start_frontend
@@ -233,7 +258,7 @@ fi
 
 if [ "${PROFILE}" = "demo" ]; then
   log "Profile=demo: starting PostgreSQL + Redis + one-shot crawler + API + Frontend"
-  docker compose --profile cache up -d postgres redis
+  docker compose up -d postgres redis
   wait_for_postgres
   run_crawler_once
   start_api
@@ -250,7 +275,7 @@ if [ "${PROFILE}" = "sqlite-release" ]; then
   wait_for_postgres
   run_crawler_once
   run_nix "./scripts/package_sqlite_release.sh '${VERSION_LABEL}'"
-  docker compose --profile cache down >/dev/null 2>&1 || true
+  docker compose down >/dev/null 2>&1 || true
 
   cat <<EOF
 
