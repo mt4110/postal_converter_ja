@@ -69,6 +69,12 @@ nix develop --command go build -o postal-launcher
 - データベースの起動/停止 (Docker)
 - Crawler, API, Frontend の一括起動 (新しいターミナルで開きます)
 
+## 📹 クイックスタート (Launcher) demo映像
+
+<!-- markdownlint-disable MD033 -->
+<video src="https://github.com/mt4110/postal_converter_ja/releases/download/v0.9.0/2026-02-26_11-33-48.mp4" controls width="800"></video>
+<!-- markdownlint-enable MD033 -->
+
 ---
 
 ## 🛠 手動セットアップ & 実行
