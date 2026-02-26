@@ -100,7 +100,11 @@ ensure_docker_daemon() {
 }
 
 ensure_compose_command() {
-  if docker compose version >/dev/null 2>&1; then
+  local compose_version_output
+
+  if compose_version_output="$(docker compose version 2>&1)" \
+    && ! printf '%s' "${compose_version_output}" | grep -q "^Docker version " \
+    && docker compose up --help >/dev/null 2>&1; then
     log "Docker Compose is available via: docker compose"
     return 0
   fi
