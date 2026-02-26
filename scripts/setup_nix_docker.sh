@@ -99,6 +99,22 @@ ensure_docker_daemon() {
   exit 1
 }
 
+ensure_compose_command() {
+  if docker compose version >/dev/null 2>&1; then
+    log "Docker Compose is available via: docker compose"
+    return 0
+  fi
+
+  if require_in_path docker-compose; then
+    log "Docker Compose is available via: docker-compose"
+    return 0
+  fi
+
+  echo "Docker Compose command is not available."
+  echo "Install Docker Compose plugin or docker-compose, then retry."
+  exit 1
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --profile)
@@ -168,6 +184,7 @@ require_in_path docker || {
 }
 
 ensure_docker_daemon
+ensure_compose_command
 
 log "Preparing project files..."
 mkdir -p "${ROOT_DIR}/storage/mysql/mysql_data" \
