@@ -60,11 +60,22 @@ install_on_macos() {
 }
 
 source_nix_if_available() {
-  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+  local nix_profile_script="/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+  local nix_profile_bin="/nix/var/nix/profiles/default/bin"
+
+  if [ -f "${nix_profile_script}" ]; then
     # shellcheck disable=SC1091
-    source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    source "${nix_profile_script}"
+  fi
+
+  if ! require_in_path nix && [ -x "${nix_profile_bin}/nix" ]; then
+    export PATH="${nix_profile_bin}:$PATH"
+  fi
+
+  if require_in_path nix; then
     return 0
   fi
+
   return 1
 }
 
