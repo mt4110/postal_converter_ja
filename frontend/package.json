@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3203",
     "build": "next build",
+    "build:pages": "GITHUB_PAGES=true NEXT_PUBLIC_DEMO_MODE=true next build",
     "start": "next start",
     "lint": "eslint ."
   },

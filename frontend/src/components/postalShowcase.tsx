@@ -49,7 +49,12 @@ type CallCenterFormState = {
   note: string;
 };
 
-const tabItems: Array<{ id: ActiveTab; label: string; icon: ReactNode; description: string }> = [
+const tabItems: Array<{
+  id: ActiveTab;
+  label: string;
+  icon: ReactNode;
+  description: string;
+}> = [
   {
     id: "ec",
     label: "EC 配送フォーム",
@@ -77,14 +82,72 @@ const panelAnimation = {
   transition: { duration: 0.22, ease: "easeOut" as const },
 };
 
+const demoPostalRecords: PostalCodeRecord[] = [
+  {
+    zip_code: "1000001",
+    prefecture_id: 13,
+    city_id: "13101",
+    prefecture: "東京都",
+    city: "千代田区",
+    town: "千代田",
+  },
+  {
+    zip_code: "1500002",
+    prefecture_id: 13,
+    city_id: "13113",
+    prefecture: "東京都",
+    city: "渋谷区",
+    town: "渋谷",
+  },
+  {
+    zip_code: "1600023",
+    prefecture_id: 13,
+    city_id: "13104",
+    prefecture: "東京都",
+    city: "新宿区",
+    town: "西新宿",
+  },
+  {
+    zip_code: "5300001",
+    prefecture_id: 27,
+    city_id: "27127",
+    prefecture: "大阪府",
+    city: "大阪市北区",
+    town: "梅田",
+  },
+  {
+    zip_code: "0600001",
+    prefecture_id: 1,
+    city_id: "01101",
+    prefecture: "北海道",
+    city: "札幌市中央区",
+    town: "北一条西",
+  },
+];
+
 function normalizeZipInput(value: string): string {
   return value.replace(/\D/g, "").slice(0, 7);
 }
 
-function applyAddressFromRecord<T extends { zipCode: string; prefecture: string; city: string; town: string }>(
-  current: T,
-  record: PostalCodeRecord,
-): T {
+function lookupDemoZip(zipInput: string): PostalCodeRecord[] {
+  const zip = normalizeZipInput(zipInput);
+  return demoPostalRecords.filter((record) => record.zip_code === zip);
+}
+
+function searchDemoAddress(keyword: string, limit: number): PostalCodeRecord[] {
+  const normalizedKeyword = keyword.replace(/\s+/g, "");
+  return demoPostalRecords
+    .filter((record) =>
+      `${record.prefecture}${record.city}${record.town}`.includes(
+        normalizedKeyword,
+      ),
+    )
+    .slice(0, limit);
+}
+
+function applyAddressFromRecord<
+  T extends { zipCode: string; prefecture: string; city: string; town: string },
+>(current: T, record: PostalCodeRecord): T {
   return {
     ...current,
     zipCode: record.zip_code,
@@ -96,6 +159,7 @@ function applyAddressFromRecord<T extends { zipCode: string; prefecture: string;
 
 export default function PostalShowcase() {
   const sdk = useMemo(() => createPostalSdk(), []);
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
   const [activeTab, setActiveTab] = useState<ActiveTab>("ec");
 
   const [ecForm, setEcForm] = useState<EcFormState>({
@@ -122,7 +186,9 @@ export default function PostalShowcase() {
     addressDetail: "",
   });
   const [memberKeyword, setMemberKeyword] = useState("");
-  const [memberCandidates, setMemberCandidates] = useState<PostalCodeRecord[]>([]);
+  const [memberCandidates, setMemberCandidates] = useState<PostalCodeRecord[]>(
+    [],
+  );
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberMessage, setMemberMessage] = useState<string>("");
 
@@ -136,7 +202,9 @@ export default function PostalShowcase() {
     town: "",
     note: "",
   });
-  const [callCenterCandidates, setCallCenterCandidates] = useState<PostalCodeRecord[]>([]);
+  const [callCenterCandidates, setCallCenterCandidates] = useState<
+    PostalCodeRecord[]
+  >([]);
   const [callCenterLoading, setCallCenterLoading] = useState(false);
   const [callCenterMessage, setCallCenterMessage] = useState("");
 
@@ -149,7 +217,9 @@ export default function PostalShowcase() {
     setEcLoading(true);
     setEcMessage("");
     try {
-      const rows = await sdk.lookupZip(ecForm.zipCode);
+      const rows = demoMode
+        ? lookupDemoZip(ecForm.zipCode)
+        : await sdk.lookupZip(ecForm.zipCode);
       if (rows.length === 0) {
         setEcCandidates([]);
         setEcMessage("該当する住所が見つかりませんでした");
@@ -158,7 +228,11 @@ export default function PostalShowcase() {
 
       setEcCandidates(rows);
       setEcForm((prev) => applyAddressFromRecord(prev, rows[0]));
-      setEcMessage(`${rows.length}件ヒットしました。候補から選択できます。`);
+      setEcMessage(
+        demoMode
+          ? `${rows.length}件ヒットしました。GitHub Pages用のデモデータです。`
+          : `${rows.length}件ヒットしました。候補から選択できます。`,
+      );
     } catch (error) {
       console.error(error);
       setEcMessage("住所補完に失敗しました。API接続を確認してください。");
@@ -176,7 +250,9 @@ export default function PostalShowcase() {
     setMemberLoading(true);
     setMemberMessage("");
     try {
-      const rows = await sdk.lookupZip(memberForm.zipCode);
+      const rows = demoMode
+        ? lookupDemoZip(memberForm.zipCode)
+        : await sdk.lookupZip(memberForm.zipCode);
       if (rows.length === 0) {
         setMemberCandidates([]);
         setMemberMessage("郵便番号に一致する住所がありません");
@@ -185,7 +261,11 @@ export default function PostalShowcase() {
 
       setMemberCandidates(rows);
       setMemberForm((prev) => applyAddressFromRecord(prev, rows[0]));
-      setMemberMessage(`郵便番号検索で${rows.length}件取得しました`);
+      setMemberMessage(
+        demoMode
+          ? `デモデータから${rows.length}件取得しました`
+          : `郵便番号検索で${rows.length}件取得しました`,
+      );
     } catch (error) {
       console.error(error);
       setMemberMessage("住所補完に失敗しました。API接続を確認してください。");
@@ -204,12 +284,16 @@ export default function PostalShowcase() {
     setMemberLoading(true);
     setMemberMessage("");
     try {
-      const rows = await sdk.searchAddress(keyword, { mode: "partial", limit: 8 });
+      const rows = demoMode
+        ? searchDemoAddress(keyword, 8)
+        : await sdk.searchAddress(keyword, { mode: "partial", limit: 8 });
       setMemberCandidates(rows);
       if (rows.length === 0) {
         setMemberMessage("該当候補はありませんでした");
       } else {
-        setMemberMessage(`${rows.length}件ヒットしました。候補を選択してください。`);
+        setMemberMessage(
+          `${rows.length}件ヒットしました。候補を選択してください。`,
+        );
       }
     } catch (error) {
       console.error(error);
@@ -228,13 +312,19 @@ export default function PostalShowcase() {
     setCallCenterLoading(true);
     setCallCenterMessage("");
     try {
-      const rows = await sdk.lookupZip(callCenterForm.zipCode);
+      const rows = demoMode
+        ? lookupDemoZip(callCenterForm.zipCode)
+        : await sdk.lookupZip(callCenterForm.zipCode);
       setCallCenterCandidates(rows);
       if (rows.length === 0) {
         setCallCenterMessage("候補が見つかりませんでした");
       } else {
         setCallCenterForm((prev) => applyAddressFromRecord(prev, rows[0]));
-        setCallCenterMessage(`${rows.length}件ヒット。候補を選択してください。`);
+        setCallCenterMessage(
+          demoMode
+            ? `${rows.length}件ヒット。デモデータから候補を選択できます。`
+            : `${rows.length}件ヒット。候補を選択してください。`,
+        );
       }
     } catch (error) {
       console.error(error);
@@ -254,12 +344,16 @@ export default function PostalShowcase() {
     setCallCenterLoading(true);
     setCallCenterMessage("");
     try {
-      const rows = await sdk.searchAddress(keyword, { mode: "partial", limit: 10 });
+      const rows = demoMode
+        ? searchDemoAddress(keyword, 10)
+        : await sdk.searchAddress(keyword, { mode: "partial", limit: 10 });
       setCallCenterCandidates(rows);
       if (rows.length === 0) {
         setCallCenterMessage("候補がありませんでした");
       } else {
-        setCallCenterMessage(`${rows.length}件ヒット。通話中に候補を選択してください。`);
+        setCallCenterMessage(
+          `${rows.length}件ヒット。通話中に候補を選択してください。`,
+        );
       }
     } catch (error) {
       console.error(error);
@@ -277,11 +371,18 @@ export default function PostalShowcase() {
         transition={{ duration: 0.35, ease: "easeOut" }}
         className="surface-card relative overflow-hidden p-6 md:p-8"
       >
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[rgba(15,118,110,0.18)] blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-16 left-8 h-44 w-44 rounded-full bg-[rgba(217,119,6,0.16)] blur-2xl" />
         <div className="relative z-10">
           <p className="status-chip inline-flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
+            <motion.span
+              animate={{ rotate: [0, 8, -4, 0] }}
+              transition={{
+                duration: 2.8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              <Sparkles className="h-4 w-4" />
+            </motion.span>
             導入SDKサンプル
           </p>
           <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
@@ -291,8 +392,16 @@ export default function PostalShowcase() {
             ECフォーム、会員登録、コールセンター入力支援の3パターンを同じSDKで実装。郵便番号厳密検索と住所キーワード検索を組み合わせ、
             入力工数と誤記を同時に削減できます。
           </p>
-          <div className="mt-4 text-xs text-[color:var(--ink-muted)] md:text-sm">
-            API Base URL: <code className="rounded bg-black/5 px-2 py-1">{process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3202"}</code>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[color:var(--ink-muted)] md:text-sm">
+            <span className="rounded-md bg-black/5 px-2 py-1">
+              {demoMode ? "GitHub Pages demo data" : "Live API"}
+            </span>
+            <span>
+              API Base URL:{" "}
+              <code className="rounded-md bg-black/5 px-2 py-1">
+                {process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3202"}
+              </code>
+            </span>
           </div>
         </div>
       </motion.section>
@@ -306,25 +415,42 @@ export default function PostalShowcase() {
         {tabItems.map((tab) => {
           const active = activeTab === tab.id;
           return (
-            <button
+            <motion.button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`surface-card text-left transition-all ${active ? "ring-2 ring-[color:var(--accent)]" : "hover:-translate-y-0.5"}`}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.99 }}
+              className={`surface-card text-left transition-all ${active ? "ring-2 ring-[color:var(--accent)]" : ""}`}
             >
               <div className="flex items-center gap-2 text-sm font-semibold">
-                {tab.icon}
+                <motion.span
+                  animate={
+                    active
+                      ? { rotate: 8, scale: 1.05 }
+                      : { rotate: 0, scale: 1 }
+                  }
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  {tab.icon}
+                </motion.span>
                 {tab.label}
               </div>
-              <p className="mt-2 text-xs text-[color:var(--ink-muted)] md:text-sm">{tab.description}</p>
-            </button>
+              <p className="mt-2 text-xs text-[color:var(--ink-muted)] md:text-sm">
+                {tab.description}
+              </p>
+            </motion.button>
           );
         })}
       </motion.nav>
 
       <AnimatePresence mode="wait">
         {activeTab === "ec" ? (
-          <motion.section key="ec-panel" {...panelAnimation} className="mt-6 surface-card p-6 md:p-8">
+          <motion.section
+            key="ec-panel"
+            {...panelAnimation}
+            className="mt-6 surface-card p-6 md:p-8"
+          >
             <div className="mb-6 flex items-center gap-2 text-lg font-semibold md:text-xl">
               <Truck className="h-5 w-5" />
               EC 配送先自動補完サンプル
@@ -345,8 +471,22 @@ export default function PostalShowcase() {
                       }))
                     }
                   />
-                  <button type="button" className="pill-button" onClick={handleEcZipLookup} disabled={ecLoading}>
-                    <Search className="h-4 w-4" />
+                  <button
+                    type="button"
+                    className="pill-button"
+                    onClick={handleEcZipLookup}
+                    disabled={ecLoading}
+                  >
+                    <motion.span
+                      animate={ecLoading ? { rotate: 360 } : { rotate: 0 }}
+                      transition={
+                        ecLoading
+                          ? { repeat: Infinity, duration: 0.9, ease: "linear" }
+                          : { duration: 0.16 }
+                      }
+                    >
+                      <Search className="h-4 w-4" />
+                    </motion.span>
                     {ecLoading ? "検索中..." : "住所を補完"}
                   </button>
                 </div>
@@ -357,7 +497,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.customerName}
-                  onChange={(event) => setEcForm((prev) => ({ ...prev, customerName: event.target.value }))}
+                  onChange={(event) =>
+                    setEcForm((prev) => ({
+                      ...prev,
+                      customerName: event.target.value,
+                    }))
+                  }
                   placeholder="山田 太郎"
                 />
               </label>
@@ -367,7 +512,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.phone}
-                  onChange={(event) => setEcForm((prev) => ({ ...prev, phone: event.target.value }))}
+                  onChange={(event) =>
+                    setEcForm((prev) => ({
+                      ...prev,
+                      phone: event.target.value,
+                    }))
+                  }
                   placeholder="09012345678"
                 />
               </label>
@@ -377,7 +527,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.prefecture}
-                  onChange={(event) => setEcForm((prev) => ({ ...prev, prefecture: event.target.value }))}
+                  onChange={(event) =>
+                    setEcForm((prev) => ({
+                      ...prev,
+                      prefecture: event.target.value,
+                    }))
+                  }
                   placeholder="東京都"
                 />
               </label>
@@ -387,7 +542,9 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.city}
-                  onChange={(event) => setEcForm((prev) => ({ ...prev, city: event.target.value }))}
+                  onChange={(event) =>
+                    setEcForm((prev) => ({ ...prev, city: event.target.value }))
+                  }
                   placeholder="千代田区"
                 />
               </label>
@@ -397,7 +554,9 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.town}
-                  onChange={(event) => setEcForm((prev) => ({ ...prev, town: event.target.value }))}
+                  onChange={(event) =>
+                    setEcForm((prev) => ({ ...prev, town: event.target.value }))
+                  }
                   placeholder="千代田"
                 />
               </label>
@@ -407,7 +566,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.street}
-                  onChange={(event) => setEcForm((prev) => ({ ...prev, street: event.target.value }))}
+                  onChange={(event) =>
+                    setEcForm((prev) => ({
+                      ...prev,
+                      street: event.target.value,
+                    }))
+                  }
                   placeholder="1-1"
                 />
               </label>
@@ -417,36 +581,57 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.building}
-                  onChange={(event) => setEcForm((prev) => ({ ...prev, building: event.target.value }))}
+                  onChange={(event) =>
+                    setEcForm((prev) => ({
+                      ...prev,
+                      building: event.target.value,
+                    }))
+                  }
                   placeholder="サンプルビル 1201"
                 />
               </label>
             </div>
 
-            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">{ecMessage}</div>
+            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">
+              {ecMessage}
+            </div>
             {ecCandidates.length > 1 ? (
-              <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3 text-sm">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="candidate-list"
+              >
                 <div className="mb-2 font-medium">候補を選択</div>
                 <div className="grid gap-2">
                   {ecCandidates.map((candidate) => (
-                    <button
+                    <motion.button
                       key={`${candidate.zip_code}-${candidate.city_id}-${candidate.town}`}
                       type="button"
                       className="ghost-button justify-start"
-                      onClick={() => setEcForm((prev) => applyAddressFromRecord(prev, candidate))}
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() =>
+                        setEcForm((prev) =>
+                          applyAddressFromRecord(prev, candidate),
+                        )
+                      }
                     >
                       <MapPinned className="h-4 w-4" />
                       {candidate.prefecture}
                       {candidate.city}
                       {candidate.town} ({formatZip(candidate.zip_code)})
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ) : null}
           </motion.section>
         ) : activeTab === "member" ? (
-          <motion.section key="member-panel" {...panelAnimation} className="mt-6 surface-card p-6 md:p-8">
+          <motion.section
+            key="member-panel"
+            {...panelAnimation}
+            className="mt-6 surface-card p-6 md:p-8"
+          >
             <div className="mb-6 flex items-center gap-2 text-lg font-semibold md:text-xl">
               <IdCard className="h-5 w-5" />
               会員登録フォーム補完サンプル
@@ -458,7 +643,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.fullName}
-                  onChange={(event) => setMemberForm((prev) => ({ ...prev, fullName: event.target.value }))}
+                  onChange={(event) =>
+                    setMemberForm((prev) => ({
+                      ...prev,
+                      fullName: event.target.value,
+                    }))
+                  }
                   placeholder="郵便 花子"
                 />
               </label>
@@ -468,7 +658,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.email}
-                  onChange={(event) => setMemberForm((prev) => ({ ...prev, email: event.target.value }))}
+                  onChange={(event) =>
+                    setMemberForm((prev) => ({
+                      ...prev,
+                      email: event.target.value,
+                    }))
+                  }
                   placeholder="hanako@example.com"
                 />
               </label>
@@ -487,9 +682,23 @@ export default function PostalShowcase() {
                       }))
                     }
                   />
-                  <button type="button" className="pill-button" onClick={handleMemberZipLookup} disabled={memberLoading}>
-                    <Search className="h-4 w-4" />
-                    郵便番号で補完
+                  <button
+                    type="button"
+                    className="pill-button"
+                    onClick={handleMemberZipLookup}
+                    disabled={memberLoading}
+                  >
+                    <motion.span
+                      animate={memberLoading ? { rotate: 360 } : { rotate: 0 }}
+                      transition={
+                        memberLoading
+                          ? { repeat: Infinity, duration: 0.9, ease: "linear" }
+                          : { duration: 0.16 }
+                      }
+                    >
+                      <Search className="h-4 w-4" />
+                    </motion.span>
+                    {memberLoading ? "検索中..." : "郵便番号で補完"}
                   </button>
                 </div>
               </label>
@@ -509,8 +718,17 @@ export default function PostalShowcase() {
                     onClick={handleMemberKeywordSearch}
                     disabled={memberLoading}
                   >
-                    <Building2 className="h-4 w-4" />
-                    キーワード検索
+                    <motion.span
+                      animate={memberLoading ? { rotate: 360 } : { rotate: 0 }}
+                      transition={
+                        memberLoading
+                          ? { repeat: Infinity, duration: 0.9, ease: "linear" }
+                          : { duration: 0.16 }
+                      }
+                    >
+                      <Building2 className="h-4 w-4" />
+                    </motion.span>
+                    {memberLoading ? "検索中..." : "キーワード検索"}
                   </button>
                 </div>
               </label>
@@ -520,7 +738,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.prefecture}
-                  onChange={(event) => setMemberForm((prev) => ({ ...prev, prefecture: event.target.value }))}
+                  onChange={(event) =>
+                    setMemberForm((prev) => ({
+                      ...prev,
+                      prefecture: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -529,7 +752,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.city}
-                  onChange={(event) => setMemberForm((prev) => ({ ...prev, city: event.target.value }))}
+                  onChange={(event) =>
+                    setMemberForm((prev) => ({
+                      ...prev,
+                      city: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -538,7 +766,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.town}
-                  onChange={(event) => setMemberForm((prev) => ({ ...prev, town: event.target.value }))}
+                  onChange={(event) =>
+                    setMemberForm((prev) => ({
+                      ...prev,
+                      town: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -547,36 +780,57 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.addressDetail}
-                  onChange={(event) => setMemberForm((prev) => ({ ...prev, addressDetail: event.target.value }))}
+                  onChange={(event) =>
+                    setMemberForm((prev) => ({
+                      ...prev,
+                      addressDetail: event.target.value,
+                    }))
+                  }
                   placeholder="2-8-1"
                 />
               </label>
             </div>
 
-            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">{memberMessage}</div>
+            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">
+              {memberMessage}
+            </div>
             {memberCandidates.length > 0 ? (
-              <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3 text-sm">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="candidate-list"
+              >
                 <div className="mb-2 font-medium">検索候補</div>
                 <div className="grid gap-2">
                   {memberCandidates.map((candidate) => (
-                    <button
+                    <motion.button
                       key={`member-${candidate.zip_code}-${candidate.city_id}-${candidate.town}`}
                       type="button"
                       className="ghost-button justify-start"
-                      onClick={() => setMemberForm((prev) => applyAddressFromRecord(prev, candidate))}
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() =>
+                        setMemberForm((prev) =>
+                          applyAddressFromRecord(prev, candidate),
+                        )
+                      }
                     >
                       <MapPinned className="h-4 w-4" />
                       {candidate.prefecture}
                       {candidate.city}
                       {candidate.town} ({formatZip(candidate.zip_code)})
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ) : null}
           </motion.section>
         ) : (
-          <motion.section key="callcenter-panel" {...panelAnimation} className="mt-6 surface-card p-6 md:p-8">
+          <motion.section
+            key="callcenter-panel"
+            {...panelAnimation}
+            className="mt-6 surface-card p-6 md:p-8"
+          >
             <div className="mb-6 flex items-center gap-2 text-lg font-semibold md:text-xl">
               <Headset className="h-5 w-5" />
               コールセンター入力支援サンプル
@@ -588,7 +842,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.customerId}
-                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, customerId: event.target.value }))}
+                  onChange={(event) =>
+                    setCallCenterForm((prev) => ({
+                      ...prev,
+                      customerId: event.target.value,
+                    }))
+                  }
                   placeholder="CUST-2026-0001"
                 />
               </label>
@@ -600,7 +859,12 @@ export default function PostalShowcase() {
                   <input
                     className="outline-input"
                     value={callCenterForm.phone}
-                    onChange={(event) => setCallCenterForm((prev) => ({ ...prev, phone: event.target.value }))}
+                    onChange={(event) =>
+                      setCallCenterForm((prev) => ({
+                        ...prev,
+                        phone: event.target.value,
+                      }))
+                    }
                     placeholder="0312345678"
                   />
                 </div>
@@ -626,8 +890,19 @@ export default function PostalShowcase() {
                     onClick={handleCallCenterZipLookup}
                     disabled={callCenterLoading}
                   >
-                    <Search className="h-4 w-4" />
-                    郵便番号検索
+                    <motion.span
+                      animate={
+                        callCenterLoading ? { rotate: 360 } : { rotate: 0 }
+                      }
+                      transition={
+                        callCenterLoading
+                          ? { repeat: Infinity, duration: 0.9, ease: "linear" }
+                          : { duration: 0.16 }
+                      }
+                    >
+                      <Search className="h-4 w-4" />
+                    </motion.span>
+                    {callCenterLoading ? "検索中..." : "郵便番号検索"}
                   </button>
                 </div>
               </label>
@@ -638,7 +913,12 @@ export default function PostalShowcase() {
                   <input
                     className="outline-input"
                     value={callCenterForm.keyword}
-                    onChange={(event) => setCallCenterForm((prev) => ({ ...prev, keyword: event.target.value }))}
+                    onChange={(event) =>
+                      setCallCenterForm((prev) => ({
+                        ...prev,
+                        keyword: event.target.value,
+                      }))
+                    }
                     placeholder="梅田 / 渋谷 など"
                   />
                   <button
@@ -647,8 +927,19 @@ export default function PostalShowcase() {
                     onClick={handleCallCenterKeywordSearch}
                     disabled={callCenterLoading}
                   >
-                    <Building2 className="h-4 w-4" />
-                    候補検索
+                    <motion.span
+                      animate={
+                        callCenterLoading ? { rotate: 360 } : { rotate: 0 }
+                      }
+                      transition={
+                        callCenterLoading
+                          ? { repeat: Infinity, duration: 0.9, ease: "linear" }
+                          : { duration: 0.16 }
+                      }
+                    >
+                      <Building2 className="h-4 w-4" />
+                    </motion.span>
+                    {callCenterLoading ? "検索中..." : "候補検索"}
                   </button>
                 </div>
               </label>
@@ -658,7 +949,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.prefecture}
-                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, prefecture: event.target.value }))}
+                  onChange={(event) =>
+                    setCallCenterForm((prev) => ({
+                      ...prev,
+                      prefecture: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -667,7 +963,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.city}
-                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, city: event.target.value }))}
+                  onChange={(event) =>
+                    setCallCenterForm((prev) => ({
+                      ...prev,
+                      city: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -676,7 +977,12 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.town}
-                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, town: event.target.value }))}
+                  onChange={(event) =>
+                    setCallCenterForm((prev) => ({
+                      ...prev,
+                      town: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -685,34 +991,49 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.note}
-                  onChange={(event) => setCallCenterForm((prev) => ({ ...prev, note: event.target.value }))}
+                  onChange={(event) =>
+                    setCallCenterForm((prev) => ({
+                      ...prev,
+                      note: event.target.value,
+                    }))
+                  }
                   placeholder="再配達希望時間など"
                 />
               </label>
             </div>
 
-            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">{callCenterMessage}</div>
+            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">
+              {callCenterMessage}
+            </div>
             {callCenterCandidates.length > 0 ? (
-              <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3 text-sm">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="candidate-list"
+              >
                 <div className="mb-2 font-medium">通話中候補</div>
                 <div className="grid gap-2">
                   {callCenterCandidates.map((candidate) => (
-                    <button
+                    <motion.button
                       key={`cc-${candidate.zip_code}-${candidate.city_id}-${candidate.town}`}
                       type="button"
                       className="ghost-button justify-start"
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() =>
-                        setCallCenterForm((prev) => applyAddressFromRecord(prev, candidate))
+                        setCallCenterForm((prev) =>
+                          applyAddressFromRecord(prev, candidate),
+                        )
                       }
                     >
                       <MapPinned className="h-4 w-4" />
                       {candidate.prefecture}
                       {candidate.city}
                       {candidate.town} ({formatZip(candidate.zip_code)})
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ) : null}
           </motion.section>
         )}
@@ -726,10 +1047,11 @@ export default function PostalShowcase() {
       >
         <h2 className="text-lg font-semibold">導入SDKの最小コード</h2>
         <p className="mt-2 text-sm text-[color:var(--ink-muted)]">
-          フォーム側はSDKの `lookupZip` / `searchAddress` を呼ぶだけで導入できます。
+          フォーム側はSDKの `lookupZip` / `searchAddress`
+          を呼ぶだけで導入できます。
         </p>
         <pre className="mt-4 overflow-x-auto rounded-xl border border-[color:var(--line)] bg-[#101820] p-4 text-xs leading-6 text-[#d7e4ef] md:text-sm">
-{`import { createPostalSdk } from "@/lib/postal-sdk";
+          {`import { createPostalSdk } from "@/lib/postal-sdk";
 
 const sdk = createPostalSdk({ baseUrl: process.env.NEXT_PUBLIC_API_URL });
 

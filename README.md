@@ -3,6 +3,8 @@
 ![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
+Example Demo: [GitHub Pages](https://mt4110.github.io/postal_converter_ja/) / Support: [SPONSORS.md](./SPONSORS.md) / Plan: [V0_7_TO_V1_EXECUTION_PLAN.md](./docs/V0_7_TO_V1_EXECUTION_PLAN.md)
+
 English README: [ENGLISH_README.md](./docs/ENGLISH_README.md)
 
 このプロジェクトは、日本郵便のデータを自動的に取得・更新し、常に最新の郵便番号データを提供するシステムです。
@@ -72,7 +74,9 @@ nix develop --command go build -o postal-launcher
 ## 📹 クイックスタート (Launcher) demo映像
 
 <!-- markdownlint-disable MD033 -->
+
 <video src="https://github.com/mt4110/postal_converter_ja/releases/download/v0.9.0/2026-02-26_11-33-48.mp4" controls width="800"></video>
+
 <!-- markdownlint-enable MD033 -->
 
 ---
@@ -295,6 +299,17 @@ nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 
 SDK 実装サンプルは `frontend/src/lib/postal-sdk.ts` を参照してください。
 
+### GitHub Pages Example
+
+フロントエンドのサンプルは、GitHub Pages 向けに静的 export できます。
+
+- Demo URL: `https://mt4110.github.io/postal_converter_ja/`
+- Pages 用ビルド: `cd frontend && yarn build:pages`
+- Pages 版は `NEXT_PUBLIC_DEMO_MODE=true` でビルドし、公開APIなしでも操作感を確認できるデモデータを使います。
+- 実APIに接続する場合は、ローカル実行または公開済みAPIの `NEXT_PUBLIC_API_URL` を指定してください。
+
+初回公開時は、GitHub の `Settings > Pages` で Source を `GitHub Actions` に設定してから、`Frontend Pages` workflow を手動実行してください。これはリポジトリの admin / maintainer 権限が必要な操作です。
+
 ## トラブルシューティング
 
 👉 **トラブルシューティングについてはこちら:** [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
@@ -383,13 +398,12 @@ CI でも同等チェック（fmt/validate）を実行します。
 本プロジェクトは、**デュアルライセンス**（Dual Licensing）を採用する予定です。
 
 1. **個人利用・非営利・オープンソース開発**:
-
-    - **MIT License** の下、自由に利用・改変・再配布が可能です。
-    - 学習目的や個人プロジェクトでぜひご活用ください。
+   - **MIT License** の下、自由に利用・改変・再配布が可能です。
+   - 学習目的や個人プロジェクトでぜひご活用ください。
 
 2. **法人利用・商用サービスへの組み込み**:
-    - 企業での業務利用や、商用製品への組み込みを行う場合は、**商用ライセンス**の契約、または**GitHub Sponsors**等による継続的な支援をお願いすることを想定しています。
-    - （現在はプレビュー版のため、評価目的での利用は無償です。本格導入の際はご連絡ください）
+   - 企業での業務利用や、商用製品への組み込みを行う場合は、**商用ライセンス**の契約、または**GitHub Sponsors**等による継続的な支援をお願いすることを想定しています。
+   - （現在はプレビュー版のため、評価目的での利用は無償です。本格導入の際はご連絡ください）
 
 このモデルにより、オープンソースとしての発展と、持続可能な開発体制の両立を目指しています。
 
@@ -400,10 +414,10 @@ CI でも同等チェック（fmt/validate）を実行します。
 - [x] **CI/CD パイプラインの構築**: GitHub Actions による自動テスト・ビルド
 - [x] **ランチャーの UX 改善**: 実行順序の制御と視覚的フィードバック
 - [x] **環境構築の自動化 (v0.6)**: `scripts/setup_nix_docker.sh` + `scripts/onboard.sh` で導入を標準化
-- [ ] **マルチプラットフォーム デプロイ基盤**: GitHub Actions + Terraform による環境展開（クラウド別ターゲット対応）
+- [x] **マルチプラットフォーム デプロイ基盤（骨格）**: GitHub Actions + Terraform による環境展開（AWS先行、GCP/Azureターゲット雛形）
 - [x] **MySQL/PostgreSQL の自動テスト**: 両 DB でのインテグレーションテスト追加
 - [x] **Docker イメージの軽量化**: マルチステージビルドの最適化（API/Crawler）
-- [ ] **Kubernetes 連携**: コンテナ連携・オーケストレーション対応（Helm/Kustomize/ArgoCD 含む）
+- [x] **Kubernetes 連携（最小構成）**: コンテナ連携・オーケストレーション対応（Helm/Kustomize/ArgoCD 含む）
 - [x] **API ドキュメントの拡充**: Swagger/OpenAPI による仕様書生成
 
 ### v0.9.1 フォーカス（非人間修正・整頓）
@@ -421,6 +435,13 @@ CI でも同等チェック（fmt/validate）を実行します。
 - [x] **ロールバック運用**: `destroy` 手順を runbook 化し、実行証跡を追加
 - [ ] **マルチクラウド再拡張**: GCP/Azure ターゲットの再導入
 - [x] **Kubernetes最小構成**: Helm/Kustomize/ArgoCD 雛形の追加（`deploy/helm/postal-converter-ja`, `deploy/k8s/base`, `deploy/argocd`）
+
+### 人間の認証・アカウント操作が必要な残タスク
+
+- GitHub Pages の初回有効化: `Settings > Pages` で Source を `GitHub Actions` に設定
+- GitHub Sponsors の有効化: `mt4110` アカウント側で Sponsors profile を有効化
+- Terraform apply / destroy: AWS/GCP/Azure の実アカウント、OIDC Role、GitHub Secrets/Variables の設定
+- v0.9.2 Human QA: `docs/V0_9_0_ACCEPTANCE.md` に沿った人間の操作確認と証跡保存
 
 ## バージョン
 
