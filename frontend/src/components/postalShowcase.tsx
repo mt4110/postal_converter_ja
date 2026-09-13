@@ -501,7 +501,7 @@ export default function PostalShowcase() {
                     className="outline-input grow"
                     value={memberKeyword}
                     onChange={(event) => setMemberKeyword(event.target.value)}
-                    placeholder="例: 新宿 西新宿"
+                    placeholder="例: 西新宿"
                   />
                   <button
                     type="button"

@@ -1,32 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Postal Converter JA フロントエンド
 
-## Getting Started
+EC配送・会員登録・コールセンターの3種類の住所入力サンプルです。
+Next.js + Reactから、`src/lib/postal-sdk.ts` を通じて郵便番号APIを呼び出します。
 
-First, run the development server:
+## 起動
+
+NixとDockerを用意し、[ルートREADME](../README.md)の手順で住所データを格納したDBとAPIを起動してください。
+フロントエンドだけでも画面は開きますが、住所検索にはAPIが必要です。
+Dockerに接続できない場合は、利用しているDocker環境を先に起動してください（Colimaの場合は `colima start`）。
+
+リポジトリのルートから、別のターミナルで実行します。
 
 ```bash
-pnpm dev
-# or
-bun dev
+nix develop --command bash -c "cd frontend && yarn install --frozen-lockfile && yarn dev"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3203](http://localhost:3203) を開きます。
+APIの既定URLは `http://localhost:3202` です。
+`http://localhost:3202/ready` で接続状態を確認できます。
+APIの接続先を変更する場合は、`frontend/.env.local` に以下を設定し、フロントエンドを再起動してください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:3202
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 動作確認
 
-## Learn More
+- EC配送: `100-0001` を入力して「住所を補完」→ 東京都・千代田区・千代田。
+- 会員登録: 住所キーワードに `西新宿` を入力して「キーワード検索」→ 候補を選択して住所と郵便番号を反映。
+- コールセンター: `5300001` を入力して「郵便番号検索」→ 大阪府・大阪市北区・梅田。
 
-To learn more about Next.js, take a look at the following resources:
+検索結果は接続先DBの収録データに依存します。住所キーワードには、まず町域名などの連続した文字列を使ってください。
+ページの実装は `src/app/page.tsx` と `src/components/postalShowcase.tsx` にあります。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## E2E
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Playwright E2E は API レスポンスをモックして、主要3フォーム、桁不足エラー、デスクトップ・モバイル幅の横はみ出しを検証します。
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+nix develop --command bash -c "cd frontend && yarn test:e2e"
+```

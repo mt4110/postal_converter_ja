@@ -1,8 +1,8 @@
 use chrono::Timelike;
 use crawler_service::db::audit::{
-    build_data_version, ensure_audit_table_mysql, ensure_audit_table_postgres,
-    ensure_snapshot_table_mysql, ensure_snapshot_table_postgres, insert_audit_mysql,
-    insert_audit_postgres, DataUpdateAuditRecord,
+    DataUpdateAuditRecord, build_data_version, ensure_audit_table_mysql,
+    ensure_audit_table_postgres, ensure_snapshot_table_mysql, ensure_snapshot_table_postgres,
+    insert_audit_mysql, insert_audit_postgres,
 };
 use mysql_async::{params, prelude::Queryable};
 use std::env;

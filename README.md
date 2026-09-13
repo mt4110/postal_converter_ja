@@ -278,13 +278,14 @@ nix develop --command bash -lc "cd worker/api && cargo run --release --bin api"
 ```
 
 API サーバーは `http://localhost:3202` で起動します。
+ポートを変える場合は、`PORT=3212` のように環境変数を指定してください。
 
 ### 5. フロントエンドの起動
 
 さらに**別のターミナルで**、Nix 環境経由でフロントエンドを起動します：
 
 ```bash
-nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
+nix develop --command bash -c "cd frontend && yarn install --frozen-lockfile && yarn dev"
 ```
 
 ブラウザで `http://localhost:3203` にアクセスすると、以下の導入サンプルを切り替えて確認できます。
@@ -294,6 +295,12 @@ nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 - コールセンター入力支援フォーム（通話中の候補提示）
 
 SDK 実装サンプルは `frontend/src/lib/postal-sdk.ts` を参照してください。
+
+フロントエンドの確認は、Nix 環境から lint、型チェック、ビルド、Playwright E2E を実行できます。E2E は API レスポンスをモックするため、CI でも安定して住所補完フローを検証できます。
+
+```bash
+nix develop --command bash -c "cd frontend && yarn lint && yarn typecheck && yarn build && yarn test:e2e"
+```
 
 ## トラブルシューティング
 
