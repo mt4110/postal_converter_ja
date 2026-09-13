@@ -3,6 +3,8 @@
 ![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
+Example Demo: [GitHub Pages](https://mt4110.github.io/postal_converter_ja/) / Support: [SPONSORS.md](../SPONSORS.md) / Plan: [V0_7_TO_V1_EXECUTION_PLAN.md](./V0_7_TO_V1_EXECUTION_PLAN.md)
+
 **Postal Converter JA** is a fully automated system that fetches and updates the latest Japanese postal code data from Japan Post.  
 It consists of a **Rust-based backend (Crawler + API)** and a **Next.js frontend**, providing a high-performance, up-to-date address lookup service.
 
@@ -175,6 +177,12 @@ nix develop --command bash -lc "cd frontend && yarn install && yarn dev"
 
 Demo available at: **http://localhost:3203**
 
+GitHub Pages demo: **https://mt4110.github.io/postal_converter_ja/**
+
+The Pages build uses `NEXT_PUBLIC_DEMO_MODE=true`, so the hosted sample can be explored with bundled demo data even when no public API is available. For live API integration, run the API locally or provide a public `NEXT_PUBLIC_API_URL`.
+
+For the first publish, set `Settings > Pages > Source` to `GitHub Actions`, then run the `Frontend Pages` workflow manually.
+
 ---
 
 ## 🛠 API Documentation
@@ -231,8 +239,8 @@ This model ensures sustainable development and fair support for long-term usage.
 - [x] Lightweight Docker images (multi-stage for API/Crawler)
 - [x] OpenAPI/Swagger documentation
 - [x] Onboarding automation (`scripts/setup_nix_docker.sh`, `scripts/onboard.sh`)
-- [x] Deployment baseline (v0.8): AWS-first with GitHub Actions + Terraform
-- [ ] Kubernetes integration (Helm/Kustomize/ArgoCD)
+- [x] Deployment baseline (v0.8): AWS-first with GitHub Actions + Terraform, plus GCP/Azure target skeletons
+- [x] Kubernetes minimum integration (Helm/Kustomize/ArgoCD)
 
 ### v0.8.x Focus (Deployment baseline)
 
@@ -241,6 +249,13 @@ This model ensures sustainable development and fair support for long-term usage.
 - [x] Offline verification route: `plan` works without AWS secret in skeleton mode
 - [x] Rollback runbook: `destroy` command path with evidence
 - [x] Kubernetes minimum skeleton: Helm + Kustomize + ArgoCD scaffolding
+
+### Human/Auth-Gated Remaining Tasks
+
+- Enable GitHub Pages source as GitHub Actions in repository settings
+- Enable the GitHub Sponsors profile for the `mt4110` account
+- Configure real cloud accounts, OIDC roles, and GitHub Secrets/Variables before Terraform apply/destroy
+- Complete v0.9.2 human QA evidence according to `docs/V0_9_0_ACCEPTANCE.md`
 
 ---
 

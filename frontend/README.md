@@ -37,6 +37,8 @@ NEXT_PUBLIC_API_URL=http://localhost:3202
 
 Playwright E2E は API レスポンスをモックして、主要3フォーム、桁不足エラー、デスクトップ・モバイル幅の横はみ出しを検証します。
 
+初回または Playwright 更新後は、E2E 実行前に Chromium を取得してください。
+
 ```bash
-nix develop --command bash -c "cd frontend && yarn test:e2e"
+nix develop --command bash -c "cd frontend && yarn playwright install chromium && yarn test:e2e"
 ```

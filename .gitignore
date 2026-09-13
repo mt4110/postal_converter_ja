@@ -19,4 +19,5 @@ docs/*_LOCAL.md
 
 # local recovery / tooling artifacts
 .git.broken_*
+.codex/
 .trunk/
