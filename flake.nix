@@ -2,7 +2,7 @@
   description = "Postal Converter JA Development Environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -14,9 +14,8 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        
         # Rust toolchain
-        rustToolchain = pkgs.rust-bin.stable."1.91.1".default.override {
+        rustToolchain = pkgs.rust-bin.stable."1.97.1".default.override {
           extensions = [ "rust-src" "rust-analyzer" ];
         };
 
@@ -32,15 +31,13 @@
           curl
           wget
           go
-          nodejs_20
-          yarn
+          nodejs_24
+          (yarn.override { nodejs = nodejs_24; })
           sqlite
           opentofu
           terraformCompat
-        ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
           pkgs.libiconv
-          pkgs.darwin.apple_sdk.frameworks.Security
-          pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
         ];
 
       in

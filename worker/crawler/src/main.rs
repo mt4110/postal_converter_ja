@@ -4,9 +4,9 @@ mod file;
 mod utils;
 use chrono::Timelike;
 use constants::temp_dir;
-use db::audit::{build_data_version, DataUpdateAuditRecord};
+use db::audit::{DataUpdateAuditRecord, build_data_version};
 use redis::AsyncCommands;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 async fn invalidate_redis_cache() {
     let Ok(redis_url) = std::env::var("REDIS_URL") else {

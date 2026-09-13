@@ -1,7 +1,7 @@
 use common::models::PostalCode;
-use mysql_async::{params, prelude::Queryable, Pool};
+use mysql_async::{Pool, params, prelude::Queryable};
 use tokio::task;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 async fn retry_transaction<F, Fut, T>(
     max_retries: usize,
@@ -20,13 +20,13 @@ where
                 if attempt >= max_retries {
                     return Err(e);
                 }
-                if let mysql_async::Error::Server(ref err) = e {
-                    if err.code == 1213 {
-                        // Deadlock
-                        attempt += 1;
-                        sleep(delay).await;
-                        continue;
-                    }
+                if let mysql_async::Error::Server(ref err) = e
+                    && err.code == 1213
+                {
+                    // Deadlock
+                    attempt += 1;
+                    sleep(delay).await;
+                    continue;
                 }
                 return Err(e);
             }
