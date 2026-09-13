@@ -4,7 +4,7 @@ use crate::utils::thread::determine_thread_num;
 use common::models::PostalCode;
 use deadpool_postgres::{Pool as PgPool, PoolError};
 use futures::future::join_all;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use tokio_postgres::Error as PgError;
 
 const MAX_RETRIES: usize = 3;
@@ -70,15 +70,16 @@ async fn bulk_insert(
                 tx.rollback().await?;
                 return Err(e);
             }
-            if let Some(pg_err) = e.as_db_error() {
-                if pg_err.code().code() == "40P01" && retries < MAX_RETRIES {
-                    eprintln!("Deadlock detected, retrying... Attempt {}", retries + 1,);
-                    retries += 1;
-                    tlog!("Retrying... Current attempt: {}", retries + 1);
-                    tlog!("Retrying query: {}", query);
-                    sleep(Duration::from_millis(200)).await;
-                    continue;
-                }
+            if let Some(pg_err) = e.as_db_error()
+                && pg_err.code().code() == "40P01"
+                && retries < MAX_RETRIES
+            {
+                eprintln!("Deadlock detected, retrying... Attempt {}", retries + 1,);
+                retries += 1;
+                tlog!("Retrying... Current attempt: {}", retries + 1);
+                tlog!("Retrying query: {}", query);
+                sleep(Duration::from_millis(200)).await;
+                continue;
             }
             tx.rollback().await?;
             return Err(e);

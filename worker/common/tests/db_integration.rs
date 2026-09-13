@@ -1,5 +1,5 @@
 use common::db;
-use mysql::{params, prelude::Queryable, Pool as MySqlPool};
+use mysql::{Pool as MySqlPool, params, prelude::Queryable};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn unique_seed() -> u64 {

@@ -1,5 +1,5 @@
 use deadpool_postgres::Pool as PgPool;
-use mysql_async::{params, prelude::Queryable, Pool as MySqlPool};
+use mysql_async::{Pool as MySqlPool, params, prelude::Queryable};
 use tokio_postgres::Error as PgError;
 
 #[derive(Debug, Clone)]

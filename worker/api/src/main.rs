@@ -1,23 +1,23 @@
 use axum::{
-    extract::{connect_info::ConnectInfo, Path, Query, State},
-    http::{header::HeaderName, Request, StatusCode},
+    Json, Router,
+    extract::{Path, Query, State, connect_info::ConnectInfo},
+    http::{Request, StatusCode, header::HeaderName},
     middleware::Next,
     response::{Html, IntoResponse, Response},
     routing::get,
-    Json, Router,
 };
 use common::{db, models::PostalCode};
 use deadpool_postgres::Pool as PgPool;
 use ipnet::IpNet;
 use mysql_async::Pool as MySqlPool;
-use redis::{aio::ConnectionManager as RedisConnectionManager, AsyncCommands};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use redis::{AsyncCommands, aio::ConnectionManager as RedisConnectionManager};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{
     collections::HashSet,
     net::{IpAddr, SocketAddr},
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
     time::Instant,
 };
@@ -351,6 +351,11 @@ fn parse_bool_env(var_name: &str, default: bool) -> bool {
         .unwrap_or(default)
 }
 
+fn parse_port(raw: Option<String>, default: u16) -> u16 {
+    raw.and_then(|value| value.trim().parse::<u16>().ok())
+        .unwrap_or(default)
+}
+
 fn parse_auth_mode(raw: &str) -> Result<AuthMode, String> {
     match raw.trim().to_ascii_lowercase().as_str() {
         "none" => Ok(AuthMode::None),
@@ -644,7 +649,7 @@ async fn main() {
         .unwrap_or(300);
 
     let redis_cache = match std::env::var("REDIS_URL") {
-        Ok(redis_url) => match redis::Client::open(redis_url) {
+        Ok(redis_url) if !redis_url.trim().is_empty() => match redis::Client::open(redis_url) {
             Ok(client) => match RedisConnectionManager::new(client).await {
                 Ok(manager) => {
                     println!("Redis cache enabled (ttl={}s).", cache_ttl_seconds);
@@ -660,7 +665,7 @@ async fn main() {
                 None
             }
         },
-        Err(_) => None,
+        Ok(_) | Err(_) => None,
     };
 
     let ready_require_cache = parse_bool_env("READY_REQUIRE_CACHE", false);
@@ -764,7 +769,8 @@ async fn main() {
         .layer(CorsLayer::permissive())
         .with_state(shared_state);
 
-    let listener = TcpListener::bind("0.0.0.0:3202").await.unwrap();
+    let port = parse_port(std::env::var("PORT").ok(), 3202);
+    let listener = TcpListener::bind(("0.0.0.0", port)).await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(
         listener,
@@ -1381,11 +1387,11 @@ async fn swagger_ui() -> Html<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_search_candidates, build_search_term, extract_forwarded_for_ip,
-        extract_non_empty_header, hiragana_to_katakana, is_truthy, katakana_to_hiragana,
-        normalize_search_input, parse_auth_mode, parse_ip_allowlist, parse_path_prefixes,
-        path_matches_prefix, resolve_cache_state, resolve_client_ip, ApiMetrics, AuthConfig,
-        AuthMode, SearchMode,
+        ApiMetrics, AuthConfig, AuthMode, SearchMode, build_search_candidates, build_search_term,
+        extract_forwarded_for_ip, extract_non_empty_header, hiragana_to_katakana, is_truthy,
+        katakana_to_hiragana, normalize_search_input, parse_auth_mode, parse_ip_allowlist,
+        parse_path_prefixes, parse_port, path_matches_prefix, resolve_cache_state,
+        resolve_client_ip,
     };
     use axum::{extract::connect_info::ConnectInfo, http::StatusCode};
     use std::{
@@ -1552,6 +1558,17 @@ mod tests {
     #[test]
     fn parse_auth_mode_rejects_unknown_value() {
         assert!(parse_auth_mode("saml").is_err());
+    }
+
+    #[test]
+    fn parse_port_uses_valid_value() {
+        assert_eq!(parse_port(Some("3212".to_string()), 3202), 3212);
+    }
+
+    #[test]
+    fn parse_port_falls_back_for_missing_or_invalid_value() {
+        assert_eq!(parse_port(None, 3202), 3202);
+        assert_eq!(parse_port(Some("not-a-port".to_string()), 3202), 3202);
     }
 
     #[test]

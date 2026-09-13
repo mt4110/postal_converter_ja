@@ -109,10 +109,10 @@ pub async fn build_prefecture_cache() -> HashMap<String, String> {
 
     if let Some(pref_list) = pref_json_map.as_array() {
         for pref in pref_list {
-            if let Some(label) = pref.get("label").and_then(|v| v.as_str()) {
-                if let Some(id) = pref.get("id").map(|id| id.to_string()) {
-                    pref_map.insert(label.to_string(), id);
-                }
+            if let Some(label) = pref.get("label").and_then(|v| v.as_str())
+                && let Some(id) = pref.get("id").map(|id| id.to_string())
+            {
+                pref_map.insert(label.to_string(), id);
             }
         }
     }
