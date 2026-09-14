@@ -12,8 +12,14 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
-import { ReactNode, useMemo, useState } from "react";
-import { createPostalSdk, formatZip, PostalCodeRecord } from "@/lib/postal-sdk";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createPostalSdk,
+  formatZip,
+  isValidZip,
+  normalizeZip,
+  PostalCodeRecord,
+} from "@/lib/postal-sdk";
 
 type ActiveTab = "ec" | "member" | "callcenter";
 
@@ -125,12 +131,36 @@ const demoPostalRecords: PostalCodeRecord[] = [
   },
 ];
 
-function normalizeZipInput(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 7);
+// Each form owns its request so a late success, error, or finally cannot
+// change state after an edit or after a newer search has started.
+function usePostalRequest() {
+  const active = useRef<AbortController | null>(null);
+  useEffect(() => () => active.current?.abort(), []);
+  return {
+    cancel() {
+      active.current?.abort();
+      active.current = null;
+    },
+    start() {
+      active.current?.abort();
+      const controller = new AbortController();
+      active.current = controller;
+      return controller;
+    },
+    isCurrent(controller: AbortController) {
+      return active.current === controller && !controller.signal.aborted;
+    },
+  };
+}
+
+function searchErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.name === "TimeoutError"
+    ? "検索がタイムアウトしました。もう一度検索してください。"
+    : fallback;
 }
 
 function lookupDemoZip(zipInput: string): PostalCodeRecord[] {
-  const zip = normalizeZipInput(zipInput);
+  const zip = normalizeZip(zipInput);
   return demoPostalRecords.filter((record) => record.zip_code === zip);
 }
 
@@ -208,18 +238,45 @@ export default function PostalShowcase() {
   const [callCenterLoading, setCallCenterLoading] = useState(false);
   const [callCenterMessage, setCallCenterMessage] = useState("");
 
+  const ecRequest = usePostalRequest();
+  const clearEcSearch = () => {
+    ecRequest.cancel();
+    setEcLoading(false);
+    setEcCandidates([]);
+    setEcMessage("");
+  };
+
+  const memberRequest = usePostalRequest();
+  const clearMemberSearch = () => {
+    memberRequest.cancel();
+    setMemberLoading(false);
+    setMemberCandidates([]);
+    setMemberMessage("");
+  };
+
+  const callCenterRequest = usePostalRequest();
+  const clearCallCenterSearch = () => {
+    callCenterRequest.cancel();
+    setCallCenterLoading(false);
+    setCallCenterCandidates([]);
+    setCallCenterMessage("");
+  };
+
   const handleEcZipLookup = async () => {
-    if (ecForm.zipCode.length !== 7) {
+    clearEcSearch();
+    if (!isValidZip(ecForm.zipCode)) {
       setEcMessage("郵便番号は7桁で入力してください");
       return;
     }
 
+    const request = ecRequest.start();
     setEcLoading(true);
     setEcMessage("");
     try {
       const rows = demoMode
         ? lookupDemoZip(ecForm.zipCode)
-        : await sdk.lookupZip(ecForm.zipCode);
+        : await sdk.lookupZip(ecForm.zipCode, { signal: request.signal });
+      if (!ecRequest.isCurrent(request)) return;
       if (rows.length === 0) {
         setEcCandidates([]);
         setEcMessage("該当する住所が見つかりませんでした");
@@ -234,25 +291,33 @@ export default function PostalShowcase() {
           : `${rows.length}件ヒットしました。候補から選択できます。`,
       );
     } catch (error) {
-      console.error(error);
-      setEcMessage("住所補完に失敗しました。API接続を確認してください。");
+      if (!ecRequest.isCurrent(request)) return;
+      setEcMessage(
+        searchErrorMessage(
+          error,
+          "住所補完に失敗しました。API接続を確認してください。",
+        ),
+      );
     } finally {
-      setEcLoading(false);
+      if (ecRequest.isCurrent(request)) setEcLoading(false);
     }
   };
 
   const handleMemberZipLookup = async () => {
-    if (memberForm.zipCode.length !== 7) {
+    clearMemberSearch();
+    if (!isValidZip(memberForm.zipCode)) {
       setMemberMessage("郵便番号は7桁で入力してください");
       return;
     }
 
+    const request = memberRequest.start();
     setMemberLoading(true);
     setMemberMessage("");
     try {
       const rows = demoMode
         ? lookupDemoZip(memberForm.zipCode)
-        : await sdk.lookupZip(memberForm.zipCode);
+        : await sdk.lookupZip(memberForm.zipCode, { signal: request.signal });
+      if (!memberRequest.isCurrent(request)) return;
       if (rows.length === 0) {
         setMemberCandidates([]);
         setMemberMessage("郵便番号に一致する住所がありません");
@@ -267,26 +332,38 @@ export default function PostalShowcase() {
           : `郵便番号検索で${rows.length}件取得しました`,
       );
     } catch (error) {
-      console.error(error);
-      setMemberMessage("住所補完に失敗しました。API接続を確認してください。");
+      if (!memberRequest.isCurrent(request)) return;
+      setMemberMessage(
+        searchErrorMessage(
+          error,
+          "住所補完に失敗しました。API接続を確認してください。",
+        ),
+      );
     } finally {
-      setMemberLoading(false);
+      if (memberRequest.isCurrent(request)) setMemberLoading(false);
     }
   };
 
   const handleMemberKeywordSearch = async () => {
+    clearMemberSearch();
     const keyword = memberKeyword.trim();
     if (!keyword) {
       setMemberMessage("町名・市区町村名などを入力してください");
       return;
     }
 
+    const request = memberRequest.start();
     setMemberLoading(true);
     setMemberMessage("");
     try {
       const rows = demoMode
         ? searchDemoAddress(keyword, 8)
-        : await sdk.searchAddress(keyword, { mode: "partial", limit: 8 });
+        : await sdk.searchAddress(keyword, {
+            mode: "partial",
+            limit: 8,
+            signal: request.signal,
+          });
+      if (!memberRequest.isCurrent(request)) return;
       setMemberCandidates(rows);
       if (rows.length === 0) {
         setMemberMessage("該当候補はありませんでした");
@@ -296,25 +373,35 @@ export default function PostalShowcase() {
         );
       }
     } catch (error) {
-      console.error(error);
-      setMemberMessage("住所検索に失敗しました。API接続を確認してください。");
+      if (!memberRequest.isCurrent(request)) return;
+      setMemberMessage(
+        searchErrorMessage(
+          error,
+          "住所検索に失敗しました。API接続を確認してください。",
+        ),
+      );
     } finally {
-      setMemberLoading(false);
+      if (memberRequest.isCurrent(request)) setMemberLoading(false);
     }
   };
 
   const handleCallCenterZipLookup = async () => {
-    if (callCenterForm.zipCode.length !== 7) {
+    clearCallCenterSearch();
+    if (!isValidZip(callCenterForm.zipCode)) {
       setCallCenterMessage("郵便番号は7桁で入力してください");
       return;
     }
 
+    const request = callCenterRequest.start();
     setCallCenterLoading(true);
     setCallCenterMessage("");
     try {
       const rows = demoMode
         ? lookupDemoZip(callCenterForm.zipCode)
-        : await sdk.lookupZip(callCenterForm.zipCode);
+        : await sdk.lookupZip(callCenterForm.zipCode, {
+            signal: request.signal,
+          });
+      if (!callCenterRequest.isCurrent(request)) return;
       setCallCenterCandidates(rows);
       if (rows.length === 0) {
         setCallCenterMessage("候補が見つかりませんでした");
@@ -327,26 +414,38 @@ export default function PostalShowcase() {
         );
       }
     } catch (error) {
-      console.error(error);
-      setCallCenterMessage("検索に失敗しました。API接続を確認してください。");
+      if (!callCenterRequest.isCurrent(request)) return;
+      setCallCenterMessage(
+        searchErrorMessage(
+          error,
+          "検索に失敗しました。API接続を確認してください。",
+        ),
+      );
     } finally {
-      setCallCenterLoading(false);
+      if (callCenterRequest.isCurrent(request)) setCallCenterLoading(false);
     }
   };
 
   const handleCallCenterKeywordSearch = async () => {
+    clearCallCenterSearch();
     const keyword = callCenterForm.keyword.trim();
     if (!keyword) {
       setCallCenterMessage("市区町村・町域などのキーワードを入力してください");
       return;
     }
 
+    const request = callCenterRequest.start();
     setCallCenterLoading(true);
     setCallCenterMessage("");
     try {
       const rows = demoMode
         ? searchDemoAddress(keyword, 10)
-        : await sdk.searchAddress(keyword, { mode: "partial", limit: 10 });
+        : await sdk.searchAddress(keyword, {
+            mode: "partial",
+            limit: 10,
+            signal: request.signal,
+          });
+      if (!callCenterRequest.isCurrent(request)) return;
       setCallCenterCandidates(rows);
       if (rows.length === 0) {
         setCallCenterMessage("候補がありませんでした");
@@ -356,10 +455,15 @@ export default function PostalShowcase() {
         );
       }
     } catch (error) {
-      console.error(error);
-      setCallCenterMessage("検索に失敗しました。API接続を確認してください。");
+      if (!callCenterRequest.isCurrent(request)) return;
+      setCallCenterMessage(
+        searchErrorMessage(
+          error,
+          "検索に失敗しました。API接続を確認してください。",
+        ),
+      );
     } finally {
-      setCallCenterLoading(false);
+      if (callCenterRequest.isCurrent(request)) setCallCenterLoading(false);
     }
   };
 
@@ -464,12 +568,13 @@ export default function PostalShowcase() {
                     className="outline-input max-w-[180px]"
                     placeholder="1000001"
                     value={formatZip(ecForm.zipCode)}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      clearEcSearch();
                       setEcForm((prev) => ({
                         ...prev,
-                        zipCode: normalizeZipInput(event.target.value),
-                      }))
-                    }
+                        zipCode: normalizeZip(event.target.value),
+                      }));
+                    }}
                   />
                   <button
                     type="button"
@@ -527,12 +632,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.prefecture}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearEcSearch();
                     setEcForm((prev) => ({
                       ...prev,
                       prefecture: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                   placeholder="東京都"
                 />
               </label>
@@ -542,9 +648,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.city}
-                  onChange={(event) =>
-                    setEcForm((prev) => ({ ...prev, city: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    clearEcSearch();
+                    setEcForm((prev) => ({
+                      ...prev,
+                      city: event.target.value,
+                    }));
+                  }}
                   placeholder="千代田区"
                 />
               </label>
@@ -554,9 +664,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={ecForm.town}
-                  onChange={(event) =>
-                    setEcForm((prev) => ({ ...prev, town: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    clearEcSearch();
+                    setEcForm((prev) => ({
+                      ...prev,
+                      town: event.target.value,
+                    }));
+                  }}
                   placeholder="千代田"
                 />
               </label>
@@ -592,7 +706,10 @@ export default function PostalShowcase() {
               </label>
             </div>
 
-            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">
+            <div
+              role="status"
+              className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]"
+            >
               {ecMessage}
             </div>
             {ecCandidates.length > 1 ? (
@@ -675,12 +792,13 @@ export default function PostalShowcase() {
                     className="outline-input max-w-[180px]"
                     placeholder="1600023"
                     value={formatZip(memberForm.zipCode)}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      clearMemberSearch();
                       setMemberForm((prev) => ({
                         ...prev,
-                        zipCode: normalizeZipInput(event.target.value),
-                      }))
-                    }
+                        zipCode: normalizeZip(event.target.value),
+                      }));
+                    }}
                   />
                   <button
                     type="button"
@@ -709,7 +827,10 @@ export default function PostalShowcase() {
                   <input
                     className="outline-input grow"
                     value={memberKeyword}
-                    onChange={(event) => setMemberKeyword(event.target.value)}
+                    onChange={(event) => {
+                      clearMemberSearch();
+                      setMemberKeyword(event.target.value);
+                    }}
                     placeholder="例: 西新宿"
                   />
                   <button
@@ -738,12 +859,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.prefecture}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearMemberSearch();
                     setMemberForm((prev) => ({
                       ...prev,
                       prefecture: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>
 
@@ -752,12 +874,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.city}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearMemberSearch();
                     setMemberForm((prev) => ({
                       ...prev,
                       city: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>
 
@@ -766,12 +889,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={memberForm.town}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearMemberSearch();
                     setMemberForm((prev) => ({
                       ...prev,
                       town: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>
 
@@ -791,7 +915,10 @@ export default function PostalShowcase() {
               </label>
             </div>
 
-            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">
+            <div
+              role="status"
+              className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]"
+            >
               {memberMessage}
             </div>
             {memberCandidates.length > 0 ? (
@@ -876,12 +1003,13 @@ export default function PostalShowcase() {
                   <input
                     className="outline-input max-w-[180px]"
                     value={formatZip(callCenterForm.zipCode)}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      clearCallCenterSearch();
                       setCallCenterForm((prev) => ({
                         ...prev,
-                        zipCode: normalizeZipInput(event.target.value),
-                      }))
-                    }
+                        zipCode: normalizeZip(event.target.value),
+                      }));
+                    }}
                     placeholder="5300001"
                   />
                   <button
@@ -913,12 +1041,13 @@ export default function PostalShowcase() {
                   <input
                     className="outline-input"
                     value={callCenterForm.keyword}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      clearCallCenterSearch();
                       setCallCenterForm((prev) => ({
                         ...prev,
                         keyword: event.target.value,
-                      }))
-                    }
+                      }));
+                    }}
                     placeholder="梅田 / 渋谷 など"
                   />
                   <button
@@ -949,12 +1078,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.prefecture}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearCallCenterSearch();
                     setCallCenterForm((prev) => ({
                       ...prev,
                       prefecture: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>
 
@@ -963,12 +1093,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.city}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearCallCenterSearch();
                     setCallCenterForm((prev) => ({
                       ...prev,
                       city: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>
 
@@ -977,12 +1108,13 @@ export default function PostalShowcase() {
                 <input
                   className="outline-input"
                   value={callCenterForm.town}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    clearCallCenterSearch();
                     setCallCenterForm((prev) => ({
                       ...prev,
                       town: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>
 
@@ -1002,7 +1134,10 @@ export default function PostalShowcase() {
               </label>
             </div>
 
-            <div className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]">
+            <div
+              role="status"
+              className="mt-4 min-h-6 text-sm text-[color:var(--ink-muted)]"
+            >
               {callCenterMessage}
             </div>
             {callCenterCandidates.length > 0 ? (
