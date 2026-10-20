@@ -21,3 +21,4 @@ docs/*_LOCAL.md
 .git.broken_*
 .codex/
 .trunk/
+__pycache__/
