@@ -1,0 +1,115 @@
+{
+  "schema": "veil.baseline.v1",
+  "generated_at": "2026-10-20T10:59:46.041555Z",
+  "tool": "veil-rs 0.22.1",
+  "entries": [
+    {
+      "fingerprint": "sha256:89263a9c071a0ec6a32a05bbe9a9d7adb5ddef7473431dae4c21b1afb8e24848",
+      "rule_id": "pii.pay.token.keyword",
+      "path": ".github/workflows/terraform-multiplatform.yml",
+      "line": 118,
+      "severity": "High",
+      "source_line_sha256": "375e04b417a45c4402b781a3711f4cddd3f8e92bb001f5992ab28aa7b1666dee",
+      "reason": "AWS role session name template; not a token value."
+    },
+    {
+      "fingerprint": "sha256:f5be44ad0ec29cfbccaaecb1ea2cb3a6aa735a483b7c1e7804590cf83d20ed6b",
+      "rule_id": "pii.pay.token.keyword",
+      "path": ".github/workflows/terraform-multiplatform.yml",
+      "line": 186,
+      "severity": "High",
+      "source_line_sha256": "67116241ef0e22e605f88c31332d27e78fbcb78ec53f66f0d628ecbe5462085d",
+      "reason": "AWS role session name template; not a token value."
+    },
+    {
+      "fingerprint": "sha256:5735a3ac0f180eeec8c8b0181514795fddabc5a7c0f8526eadd83470f10edce4",
+      "rule_id": "pii.pay.token.keyword",
+      "path": ".github/workflows/terraform-multiplatform.yml",
+      "line": 241,
+      "severity": "High",
+      "source_line_sha256": "3520920d7ac0e41b6ffab27ea5375fc8f576402ccad2c4ec1a8948e01b375168",
+      "reason": "AWS role session name template; not a token value."
+    },
+    {
+      "fingerprint": "sha256:d0011ae7bf050019065fc0399b85a90c3b0d005cb6f8c8b9cebd4073ee8f2a04",
+      "rule_id": "pii.net.email",
+      "path": "README.md",
+      "line": 123,
+      "severity": "Medium",
+      "source_line_sha256": "01ba345b55fac0e7dd5fcdeea8c9306992b2aefb6352207bc45fbe409bf3f146",
+      "reason": "Local Docker database connection example; hostname/userinfo is not a personal email address."
+    },
+    {
+      "fingerprint": "sha256:fe981a7012fd90c207651ed33eb3005a8b604563884173d1a4fae01e5ddaeb8c",
+      "rule_id": "pii.pay.token.keyword",
+      "path": "docs/DEPLOY.md",
+      "line": 78,
+      "severity": "High",
+      "source_line_sha256": "13f58b4f516c3cfd8ed76710b36cc6b99b1e9132225bebbac6cd79ebdf217540",
+      "reason": "Public GitHub OIDC provider hostname in an IAM trust policy example; not a token value."
+    },
+    {
+      "fingerprint": "sha256:0d83e9ddbf92e5f9892d89c3dba4345ed7a39129c228de3763d2578113d3e714",
+      "rule_id": "pii.pay.token.keyword",
+      "path": "docs/DEPLOY.md",
+      "line": 83,
+      "severity": "High",
+      "source_line_sha256": "30328d5dd24561c77538143a5108ff003bb16b4906f5b8f3ead86bcdaae69d7f",
+      "reason": "Public GitHub OIDC provider hostname in an IAM trust policy example; not a token value."
+    },
+    {
+      "fingerprint": "sha256:acdf3a6d3b874e4b5189646cb1fb9cc31856830e54ec663d0bf853e4f510fbde",
+      "rule_id": "pii.pay.token.keyword",
+      "path": "docs/DEPLOY.md",
+      "line": 84,
+      "severity": "High",
+      "source_line_sha256": "4537e9dab509758ebfd7025f7120c390005185e630fed4d53ab21d7ad481dee2",
+      "reason": "Public GitHub OIDC provider hostname in an IAM trust policy example; not a token value."
+    },
+    {
+      "fingerprint": "sha256:2fa800b497889a7bcf75a48d9896fe0e58bc180f2c51c851be88adfd53be4495",
+      "rule_id": "pii.pay.token.keyword",
+      "path": "docs/DEPLOY.md",
+      "line": 87,
+      "severity": "High",
+      "source_line_sha256": "ad672257e896ed275c711c8fc751278567445da7d3ee473d5c3a73504e54d48b",
+      "reason": "Public GitHub OIDC provider hostname in an IAM trust policy example; not a token value."
+    },
+    {
+      "fingerprint": "sha256:a6f78a865424fc28ed80dce7319fddaa4c3122a55449488b5c173d0d20d31d1d",
+      "rule_id": "pii.jp.mynumber.unlabeled",
+      "path": "scripts/setup_github_oidc_vars.sh",
+      "line": 99,
+      "severity": "Medium",
+      "source_line_sha256": "29c2fc92e8b75f09b46e1d9e388f78eb80ae005b9d35764a6ec84ce3fa97a224",
+      "reason": "All-zero UUID placeholder for offline Azure setup; not a Japanese personal number."
+    },
+    {
+      "fingerprint": "sha256:a6f78a865424fc28ed80dce7319fddaa4c3122a55449488b5c173d0d20d31d1d",
+      "rule_id": "pii.jp.mynumber.unlabeled",
+      "path": "scripts/setup_github_oidc_vars.sh",
+      "line": 99,
+      "severity": "Medium",
+      "source_line_sha256": "29c2fc92e8b75f09b46e1d9e388f78eb80ae005b9d35764a6ec84ce3fa97a224",
+      "reason": "All-zero UUID placeholder for offline Azure setup; not a Japanese personal number."
+    },
+    {
+      "fingerprint": "sha256:0f10dfe71c4c9acec776cb69899b515478c77d724d0edff70a19e208b6cd148e",
+      "rule_id": "pii.jp.mynumber.unlabeled",
+      "path": "scripts/setup_github_oidc_vars.sh",
+      "line": 100,
+      "severity": "Medium",
+      "source_line_sha256": "9c64b21da0e6efcad1ee85e55cbb85941f17e2c473b97c591a2b61f3528445f5",
+      "reason": "All-zero UUID placeholder for offline Azure setup; not a Japanese personal number."
+    },
+    {
+      "fingerprint": "sha256:0f10dfe71c4c9acec776cb69899b515478c77d724d0edff70a19e208b6cd148e",
+      "rule_id": "pii.jp.mynumber.unlabeled",
+      "path": "scripts/setup_github_oidc_vars.sh",
+      "line": 100,
+      "severity": "Medium",
+      "source_line_sha256": "9c64b21da0e6efcad1ee85e55cbb85941f17e2c473b97c591a2b61f3528445f5",
+      "reason": "All-zero UUID placeholder for offline Azure setup; not a Japanese personal number."
+    }
+  ]
+}

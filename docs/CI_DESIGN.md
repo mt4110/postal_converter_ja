@@ -70,3 +70,25 @@ Helm chart の回帰検知は `.github/workflows/ci.yml` の `helm` ジョブで
 - `-ignore-missing-schemas` は「CRD由来の未解決スキーマのみ」を許容するための例外として扱う。
 - 新規 CRD を導入した場合は、PR に「なぜこの例外が必要か」を記載する。
 - CRD の安定スキーマ配布元を固定できる段階になったら、`-ignore-missing-schemas` の解除を検討する。
+
+## Veil Secret Scan
+
+`.github/workflows/veil.yml` は、既存のアプリケーション検証と独立してmainへのpush・main向けPR・手動実行で動く。
+Veil 0.22.1のLinux x86_64 musl配布ZIPとSHA-256を固定し、`scripts/ci_veil.py` からGit追跡ファイルの作業ツリーを検査する。
+Git履歴や未追跡ファイルの検査は含まない。baseline自身とバイナリのスキップはレポートの対象数に影響する。
+
+- `--fail-on-severity High` は、この版ではスコア70以上で終了1となる。JSONの重大度ラベルだけで判定しない。
+- `veil.baseline.json` の12件は、公開設定例・テンプレートの確認済み候補。各例外に理由と元行のSHA-256を持ち、元行の変更・移動時は補助スクリプトが終了2で再確認を求める。
+- 例外の自動再生成やルール全体の無効化はしない。更新時は対象の元行を再レビューする。
+- 検査の終了0・1・2を維持し、エラーや不完全な検査を成功扱いにしない。
+- runnerの一時ディレクトリへ、件数・ルール・パス・行番号・重大度・スコアだけを保存する。ソース断片を保存せず、GitHub artifactの保持は7日間。
+- workflowの権限は `contents: read`。ブランチ保護やrulesetでの必須チェック指定は別の設定で、今回変更していない。
+
+ローカルでも同じ判定を使う場合は、配布版Veilを展開したうえで次を実行する。レポートはリポジトリ外の新しい保存先へ出力する。
+
+```bash
+python3 -m unittest discover -s scripts/tests -p test_ci_veil.py
+python3 scripts/ci_veil.py --veil-bin /path/to/veil --report /path/outside/repository/veil-report.json
+```
+
+実行後はGitHub ActionsのSummaryで終了コードと件数を確認し、`veil-report` artifact内のJSONからルールID・パス・行番号・スコアを確認する。
