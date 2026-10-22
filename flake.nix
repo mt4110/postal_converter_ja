@@ -33,7 +33,7 @@
 
         # System dependencies
         buildInputs = with pkgs; [
-          openssl
+          nodejsPkgs.openssl
           pkg-config
           curl
           wget
@@ -52,15 +52,18 @@
         packages.nodejs = nodejs;
         checks.nodejs-security = nodejsPkgs.runCommand "nodejs-security" {
           nativeBuildInputs = [ nodejs ];
+          # Exercise the same shared-library search path as the development shell.
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
         } ''
           node <<'JS'
           const assert = require("node:assert/strict");
           const zlib = require("node:zlib");
           assert.equal(process.versions.node, "${nodejs.version}");
           assert.equal(process.versions.brotli, "${nodejsPkgs.brotli.version}");
+          assert.equal(process.versions.openssl, "${nodejsPkgs.openssl.version}");
           const input = Buffer.from("Brotli runtime check");
           assert.deepEqual(zlib.brotliDecompressSync(zlib.brotliCompressSync(input)), input);
-          console.log(process.versions.node, process.versions.brotli);
+          console.log(process.versions.node, process.versions.brotli, process.versions.openssl);
           JS
           touch "$out"
         '';
