@@ -7,6 +7,18 @@ on:
     branches: ["main"]
 
 jobs:
+  nix-node-security:
+    name: Nix Node.js security runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - name: Evaluate the development shell
+        run: nix flake check --no-build
+      - name: Check the patched Node.js and shared Brotli runtime
+        run: nix build .#checks.x86_64-linux.nodejs-security --no-link -L
+
   api:
     name: Rust API & Crawler Build / Test
     runs-on: ubuntu-latest
