@@ -3,17 +3,24 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # Security backport includes Node.js 24.22.1 and shared Brotli 1.2.1.
+    nodejs-nixpkgs.url = "github:NixOS/nixpkgs/04b65f5f819c8f0d0592a4b34fb3ee57ac92b1ad";
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
+  outputs = { self, nixpkgs, nodejs-nixpkgs, rust-overlay, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
+        nodejsPkgs = nodejs-nixpkgs.legacyPackages.${system};
+        nodejs =
+          assert nodejsPkgs.lib.versionAtLeast nodejsPkgs.nodejs_24.version "24.22.1";
+          assert nodejsPkgs.lib.versionAtLeast nodejsPkgs.brotli.version "1.2.1";
+          nodejsPkgs.nodejs_24;
         # Rust toolchain
         rustToolchain = pkgs.rust-bin.stable."1.97.1".default.override {
           extensions = [ "rust-src" "rust-analyzer" ];
@@ -31,8 +38,8 @@
           curl
           wget
           go
-          nodejs_24
-          (yarn.override { nodejs = nodejs_24; })
+          nodejs
+          (yarn.override { inherit nodejs; })
           sqlite
           opentofu
           terraformCompat
@@ -42,6 +49,22 @@
 
       in
       {
+        packages.nodejs = nodejs;
+        checks.nodejs-security = nodejsPkgs.runCommand "nodejs-security" {
+          nativeBuildInputs = [ nodejs ];
+        } ''
+          node <<'JS'
+          const assert = require("node:assert/strict");
+          const zlib = require("node:zlib");
+          assert.equal(process.versions.node, "${nodejs.version}");
+          assert.equal(process.versions.brotli, "${nodejsPkgs.brotli.version}");
+          const input = Buffer.from("Brotli runtime check");
+          assert.deepEqual(zlib.brotliDecompressSync(zlib.brotliCompressSync(input)), input);
+          console.log(process.versions.node, process.versions.brotli);
+          JS
+          touch "$out"
+        '';
+
         devShells.default = pkgs.mkShell {
           buildInputs = [
             rustToolchain
