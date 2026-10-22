@@ -35,12 +35,6 @@ Rust 製のバックエンド（Crawler + API）と、Next.js 製のフロント
 - **Docker**: データベースの実行に使用します
 - **補足**: Node.js / Yarn / Go / Rust は `nix develop` で提供されます（Nix 前提）
 
-NixのNode.jsは24.22.1、共有Brotliは1.2.1に固定しています。
-[2026-10-21のセキュリティ更新](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)を含む
-Node用nixpkgs入力を使い、Rust・Goなどの既存入力は維持します。Yarnも同じNode.jsを使います。
-`nix build .#checks.aarch64-darwin.nodejs-security`（Linuxでは`x86_64-linux`）で
-実行時のNode/Brotliの版と圧縮・展開の基本動作を確認できます。これは脆弱性の再現試験ではありません。
-
 
 ### Nix のインストール
 
@@ -481,3 +475,11 @@ Postal Converter JA はオープンソースプロジェクトであり、皆様
 本システムは、貴社の郵便番号データをより扱いやすく、現代的な Web 開発の現場で活用しやすくするために開発されました。
 もし本プロジェクトの趣旨にご賛同いただけるようでしたら、公式なスポンサー、あるいは技術的なパートナーシップをご検討いただければ幸いです。
 正確で使いやすい住所データインフラを、共に構築できることを願っております。
+
+## Nix Node.jsセキュリティ更新
+
+NixのNode.jsは24.22.1、共有Brotliは1.2.1に固定しています。
+[2026-10-21のセキュリティ更新](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)を含む
+Node用nixpkgs入力を使い、Rust・Goなどの既存入力は維持します。Yarnも同じNode.jsを使います。
+`nix build .#checks.aarch64-darwin.nodejs-security`（Linuxでは`x86_64-linux`）で
+実行時のNode/Brotliの版と圧縮・展開の基本動作を確認できます。これは脆弱性の再現試験ではありません。
