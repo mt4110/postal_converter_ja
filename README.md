@@ -35,7 +35,6 @@ Rust 製のバックエンド（Crawler + API）と、Next.js 製のフロント
 - **Docker**: データベースの実行に使用します
 - **補足**: Node.js / Yarn / Go / Rust は `nix develop` で提供されます（Nix 前提）
 
-
 ### Nix のインストール
 
 まだ Nix をインストールしていない場合は、以下のコマンドでインストールしてください：
