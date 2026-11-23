@@ -12,7 +12,7 @@ deadpool-postgres = "0.14"
 tokio-postgres = "0.7"
 dotenv = "0.15"
 tokio = { version = "1.40", features = ["full"] }
-utoipa = "5"
+utoipa = { workspace = true }
 
 [lib]
 path = "src/lib.rs"

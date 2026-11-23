@@ -77,21 +77,30 @@ jobs:
 
       - name: Wait for Databases
         run: |
-          for i in $(seq 1 60); do
-            if docker exec mysql_container mysqladmin ping -uroot -pmysql_root --silent; then
-              break
-            fi
-            sleep 2
-          done
-          docker exec mysql_container mysqladmin ping -uroot -pmysql_root --silent
+          wait_for_database() {
+            local database="$1"
+            shift
+            for attempt in $(seq 1 60); do
+              if "$@"; then
+                return 0
+              fi
+              sleep 2
+            done
+            echo "$database did not become ready" >&2
+            return 1
+          }
 
-          for i in $(seq 1 60); do
-            if docker exec postgres_container pg_isready -U postgres -d zip_code_db; then
-              break
-            fi
-            sleep 2
-          done
-          docker exec postgres_container pg_isready -U postgres -d zip_code_db
+          # The images start temporary socket-only servers to initialize the schema.
+          wait_for_database MySQL docker exec mysql_container sh -ec '
+            MYSQL_PWD="$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 \
+              --user="$MYSQL_USER" --database="$MYSQL_DATABASE" \
+              --execute="SELECT 1 FROM postal_codes LIMIT 1"
+          '
+          wait_for_database PostgreSQL docker exec postgres_container sh -ec '
+            PGPASSWORD="$POSTGRES_PASSWORD" psql --host=127.0.0.1 --no-password \
+              --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" \
+              --set=ON_ERROR_STOP=1 --command="SELECT 1 FROM postal_codes LIMIT 1"
+          '
 
       - name: Run DB Integration Tests
         working-directory: worker
