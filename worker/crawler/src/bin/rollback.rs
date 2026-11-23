@@ -1,11 +1,12 @@
-use chrono::Timelike;
 use crawler_service::db::audit::{
     DataUpdateAuditRecord, build_data_version, ensure_audit_table_mysql,
     ensure_audit_table_postgres, ensure_snapshot_table_mysql, ensure_snapshot_table_postgres,
     insert_audit_mysql, insert_audit_postgres,
 };
+use crawler_service::utils::tlog::local_wall_time;
 use mysql_async::{params, prelude::Queryable};
 use std::env;
+use time::OffsetDateTime;
 
 fn usage() {
     eprintln!(
@@ -53,10 +54,10 @@ fn make_rollback_audit_record(
     target_data_version: &str,
     restored_count: i64,
 ) -> DataUpdateAuditRecord {
-    let now_utc = chrono::Utc::now();
-    let now_local = chrono::Local::now().naive_local();
+    let now_utc = OffsetDateTime::now_utc();
+    let now_local = local_wall_time(now_utc);
     let batch_timestamp = now_local
-        .with_nanosecond(0)
+        .replace_nanosecond(0)
         .expect("failed to normalize rollback batch timestamp");
     let rollback_data_version = format!("r{}", build_data_version(now_local));
 

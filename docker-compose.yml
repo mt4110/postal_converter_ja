@@ -14,7 +14,9 @@ services:
 
   # MySQL Database: Stores postal code data (Primary storage)
   mysql:
-    image: mysql:8.4
+    image: postal-converter-ja-mysql:local
+    build: ./deploy/docker/mysql
+    pull_policy: build
     container_name: mysql_container
     environment:
       MYSQL_ROOT_PASSWORD: mysql_root
@@ -42,7 +44,9 @@ services:
 
   # PostgreSQL Database: Stores postal code data (Alternative/Secondary storage)
   postgres:
-    image: postgres:16
+    image: postal-converter-ja-postgres:local
+    build: ./deploy/docker/postgres
+    pull_policy: build
     container_name: postgres_container
     environment:
       POSTGRES_USER: postgres
@@ -54,7 +58,7 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./storage/postgres/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql:ro
+      - "${POSTAL_POSTGRES_INIT_SQL:-./storage/postgres/init-postgres.sql}:/docker-entrypoint-initdb.d/init-postgres.sql:ro"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -63,7 +67,9 @@ services:
       start_period: 20s
 
   redis:
-    image: redis:7-alpine
+    image: postal-converter-ja-redis:local
+    build: ./deploy/docker/redis
+    pull_policy: build
     container_name: redis_container
     profiles:
       - cache
@@ -76,4 +82,5 @@ services:
 volumes:
   mysql_data:
   postgres_data:
+    name: "${POSTAL_POSTGRES_VOLUME:-${COMPOSE_PROJECT_NAME}_postgres_data}"
   redis_data:

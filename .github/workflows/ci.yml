@@ -120,10 +120,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node 24
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: frontend/.node-version
           cache: yarn
           cache-dependency-path: frontend/yarn.lock
 
@@ -166,7 +166,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24.10"
+          go-version: "1.27.4"
 
       - name: Build Launcher
         working-directory: launcher

@@ -1,14 +1,15 @@
 use deadpool_postgres::Pool as PgPool;
 use mysql_async::{Pool as MySqlPool, params, prelude::Queryable};
+use time::{OffsetDateTime, PrimitiveDateTime, macros::format_description};
 use tokio_postgres::Error as PgError;
 
 #[derive(Debug, Clone)]
 pub struct DataUpdateAuditRecord {
     pub data_version: String,
     pub source_url: String,
-    pub run_started_at: chrono::DateTime<chrono::Utc>,
-    pub run_finished_at: chrono::DateTime<chrono::Utc>,
-    pub batch_timestamp: chrono::NaiveDateTime,
+    pub run_started_at: OffsetDateTime,
+    pub run_finished_at: OffsetDateTime,
+    pub batch_timestamp: PrimitiveDateTime,
     pub records_in_feed: i64,
     pub inserted_count: i64,
     pub updated_count: i64,
@@ -18,16 +19,16 @@ pub struct DataUpdateAuditRecord {
     pub error_message: Option<String>,
 }
 
-pub fn build_data_version(batch_timestamp: chrono::NaiveDateTime) -> String {
+pub fn build_data_version(batch_timestamp: PrimitiveDateTime) -> String {
     format!(
         "v{}{:03}",
-        batch_timestamp.format("%Y%m%d%H%M%S"),
-        batch_timestamp.and_utc().timestamp_subsec_millis()
+        batch_timestamp
+            .format(format_description!(
+                "[year][month][day][hour][minute][second]"
+            ))
+            .expect("format describes a primitive date and time"),
+        batch_timestamp.millisecond()
     )
-}
-
-fn naive_utc_to_utc(batch_timestamp: chrono::NaiveDateTime) -> chrono::DateTime<chrono::Utc> {
-    batch_timestamp.and_utc()
 }
 
 pub async fn ensure_audit_table_postgres(pool: &PgPool) -> Result<(), PgError> {
@@ -104,10 +105,10 @@ pub async fn create_postgres_snapshot(pool: &PgPool, data_version: &str) -> Resu
 
 pub async fn compute_postgres_diff_counts(
     pool: &PgPool,
-    batch_timestamp: chrono::NaiveDateTime,
+    batch_timestamp: PrimitiveDateTime,
 ) -> Result<(i64, i64, i64), PgError> {
     let client = pool.get().await.expect("Failed to get client");
-    let batch_timestamp_utc = naive_utc_to_utc(batch_timestamp);
+    let batch_timestamp_utc = batch_timestamp.assume_utc();
 
     let touched_count: i64 = client
         .query_one(
@@ -141,7 +142,7 @@ pub async fn insert_audit_postgres(
     record: &DataUpdateAuditRecord,
 ) -> Result<(), PgError> {
     let client = pool.get().await.expect("Failed to get client");
-    let batch_timestamp_utc = naive_utc_to_utc(record.batch_timestamp);
+    let batch_timestamp_utc = record.batch_timestamp.assume_utc();
     client
         .execute(
             "INSERT INTO data_update_audits (
@@ -244,7 +245,7 @@ pub async fn create_mysql_snapshot(
 
 pub async fn compute_mysql_diff_counts(
     pool: &MySqlPool,
-    batch_timestamp: chrono::NaiveDateTime,
+    batch_timestamp: PrimitiveDateTime,
 ) -> Result<(i64, i64, i64), mysql_async::Error> {
     let mut conn = pool.get_conn().await?;
 
@@ -284,6 +285,8 @@ pub async fn insert_audit_mysql(
     record: &DataUpdateAuditRecord,
 ) -> Result<(), mysql_async::Error> {
     let mut conn = pool.get_conn().await?;
+    let run_started_at = record.run_started_at.to_utc();
+    let run_finished_at = record.run_finished_at.to_utc();
     conn.exec_drop(
         "INSERT INTO data_update_audits (
             data_version, database_type, source_url,
@@ -299,8 +302,8 @@ pub async fn insert_audit_mysql(
         params! {
             "data_version" => &record.data_version,
             "source_url" => &record.source_url,
-            "run_started_at" => record.run_started_at.naive_utc(),
-            "run_finished_at" => record.run_finished_at.naive_utc(),
+            "run_started_at" => PrimitiveDateTime::new(run_started_at.date(), run_started_at.time()),
+            "run_finished_at" => PrimitiveDateTime::new(run_finished_at.date(), run_finished_at.time()),
             "batch_timestamp" => record.batch_timestamp,
             "records_in_feed" => record.records_in_feed,
             "inserted_count" => record.inserted_count,
@@ -321,10 +324,7 @@ mod tests {
 
     #[test]
     fn build_data_version_has_fixed_prefix_and_length() {
-        let ts = chrono::NaiveDate::from_ymd_opt(2026, 2, 12)
-            .expect("valid date")
-            .and_hms_milli_opt(21, 37, 5, 123)
-            .expect("valid time");
+        let ts = time::macros::datetime!(2026-02-12 21:37:05.123);
         let v = build_data_version(ts);
         assert_eq!(v, "v20260212213705123");
     }

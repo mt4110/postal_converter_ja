@@ -4,8 +4,8 @@ version = "0.8.0"
 edition = "2024"
 
 [dependencies]
-tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
-dotenv = "0.15"
+tokio-postgres = { version = "0.7", features = ["with-time-0_3"] }
+dotenv = { package = "dotenvy", version = "0.15.7" }
 futures = "0.3"
 futures-util = "0.3"
 reqwest = { version = "0.13", features = [
@@ -22,12 +22,13 @@ zip = "9.5"
 serde = { version = "1.0", features = ["derive"] }
 common = { path = "../common" }
 deadpool-postgres = { version = "0.14", features = ["serde"] }
-mysql_async = { version = "0.36.1", default-features = false, features = [
+mysql_async = { version = "0.37.1", default-features = false, features = [
   "default",
-  "chrono",
+  "time",
 ] }
 num_cpus = "1.16"
-chrono = { version = "0.4", features = ["serde"] }
+time = { version = "0.3.55", features = ["formatting", "macros"] }
+jiff = "0.2"
 encoding_rs = "0.8.35"
 redis = { version = "1.0", features = ["tokio-comp"] }
 

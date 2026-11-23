@@ -2,10 +2,10 @@ mod constants;
 mod db;
 mod file;
 mod utils;
-use chrono::Timelike;
 use constants::temp_dir;
 use db::audit::{DataUpdateAuditRecord, build_data_version};
 use redis::AsyncCommands;
+use time::{OffsetDateTime, PrimitiveDateTime};
 use tokio::time::{Duration, sleep};
 
 async fn invalidate_redis_cache() {
@@ -101,10 +101,10 @@ async fn main() {
 
     loop {
         tlog!("Starting crawler cycle...");
-        let run_started_at = chrono::Utc::now();
-        let batch_now = chrono::Utc::now().naive_utc();
+        let run_started_at = OffsetDateTime::now_utc();
+        let batch_now = PrimitiveDateTime::new(run_started_at.date(), run_started_at.time());
         let batch_timestamp = batch_now
-            .with_nanosecond(0)
+            .replace_nanosecond(0)
             .expect("failed to normalize batch timestamp");
         let data_version = build_data_version(batch_now);
         tlog!("Batch timestamp: {:?}", batch_timestamp);
@@ -174,7 +174,7 @@ async fn main() {
                 data_version: data_version.clone(),
                 source_url: zip_code_url.clone(),
                 run_started_at,
-                run_finished_at: chrono::Utc::now(),
+                run_finished_at: OffsetDateTime::now_utc(),
                 batch_timestamp,
                 records_in_feed,
                 inserted_count: 0,
@@ -208,7 +208,7 @@ async fn main() {
                                 eprintln!("Error deleting old records from MySQL: {:?}", e);
                                 audit_record.error_message =
                                     Some(format!("delete_old_records: {e}"));
-                                audit_record.run_finished_at = chrono::Utc::now();
+                                audit_record.run_finished_at = OffsetDateTime::now_utc();
                                 if let Err(log_err) =
                                     db::audit::insert_audit_mysql(&mysql_pool, &audit_record).await
                                 {
@@ -248,7 +248,7 @@ async fn main() {
                 }
             }
 
-            audit_record.run_finished_at = chrono::Utc::now();
+            audit_record.run_finished_at = OffsetDateTime::now_utc();
             if let Err(e) = db::audit::insert_audit_mysql(&mysql_pool, &audit_record).await {
                 eprintln!("Error inserting MySQL audit log: {:?}", e);
             }
@@ -280,7 +280,7 @@ async fn main() {
                 data_version: data_version.clone(),
                 source_url: zip_code_url.clone(),
                 run_started_at,
-                run_finished_at: chrono::Utc::now(),
+                run_finished_at: OffsetDateTime::now_utc(),
                 batch_timestamp,
                 records_in_feed,
                 inserted_count: 0,
@@ -318,7 +318,7 @@ async fn main() {
                                 eprintln!("Error deleting old records from PostgreSQL: {:?}", e);
                                 audit_record.error_message =
                                     Some(format!("delete_old_records: {e}"));
-                                audit_record.run_finished_at = chrono::Utc::now();
+                                audit_record.run_finished_at = OffsetDateTime::now_utc();
                                 if let Err(log_err) =
                                     db::audit::insert_audit_postgres(&postgres_pool, &audit_record)
                                         .await
@@ -365,7 +365,7 @@ async fn main() {
                 }
             }
 
-            audit_record.run_finished_at = chrono::Utc::now();
+            audit_record.run_finished_at = OffsetDateTime::now_utc();
             if let Err(e) = db::audit::insert_audit_postgres(&postgres_pool, &audit_record).await {
                 eprintln!("Error inserting PostgreSQL audit log: {:?}", e);
             }

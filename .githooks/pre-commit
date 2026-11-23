@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail
+
+root=$(git rev-parse --show-toplevel)
+snapshot=$(mktemp -d "${TMPDIR:-/tmp}/postal-index.XXXXXXXX")
+trap 'rm -rf -- "$snapshot"' EXIT
+
+git -C "$root" checkout-index --all --prefix="$snapshot/"
+cd "$snapshot"
+bash scripts/security-scan.sh

@@ -1,5 +1,6 @@
 use common::models::PostalCode;
 use mysql_async::{Pool, params, prelude::Queryable};
+use time::PrimitiveDateTime;
 use tokio::task;
 use tokio::time::{Duration, sleep};
 
@@ -37,7 +38,7 @@ where
 pub async fn bulk_insert(
     pool: &Pool,
     data: &[PostalCode],
-    batch_timestamp: chrono::NaiveDateTime,
+    batch_timestamp: PrimitiveDateTime,
 ) -> Result<(), mysql_async::Error> {
     let chunk_size = 200;
     println!("Inserting {} records", data.len());
@@ -122,7 +123,7 @@ pub async fn bulk_insert(
 
 pub async fn delete_old_records_mysql(
     pool: &Pool,
-    batch_timestamp: chrono::NaiveDateTime,
+    batch_timestamp: PrimitiveDateTime,
 ) -> Result<u64, mysql_async::Error> {
     println!("Deleting records older than {:?}", batch_timestamp);
     let mut conn = pool.get_conn().await?;
