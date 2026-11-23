@@ -132,6 +132,10 @@ scan_images() {
   local image dockerfile stage status=0 archive="$scratch/image.tar"
   local compose_config="$scratch/compose.json"
   local compose_files=(--profile '*' -f docker-compose.yml -f docker-compose.local.yml)
+  local buildx_args=()
+  if [[ -n "${POSTAL_OSV_EXPORT_BUILDER:-}" ]]; then
+    buildx_args+=(--builder "$POSTAL_OSV_EXPORT_BUILDER")
+  fi
 
   docker compose "${compose_files[@]}" config --format json > "$compose_config"
   if ! jq -e '.services | length > 0 and all(.[]; (.image | type == "string" and length > 0))' "$compose_config" >/dev/null; then
@@ -156,7 +160,7 @@ scan_images() {
   for dockerfile in worker/api/Dockerfile worker/crawler/Dockerfile; do
     for stage in rust-base runtime-base builder runtime; do
       echo "Scanning $dockerfile ($stage)"
-      docker buildx build --pull --output "type=docker,dest=$archive" \
+      docker buildx build "${buildx_args[@]}" --pull --output "type=docker,dest=$archive" \
         --file "$dockerfile" --target "$stage" .
       scan_archive "$archive" || status=1
     done

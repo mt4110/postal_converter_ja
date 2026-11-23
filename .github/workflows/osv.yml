@@ -52,5 +52,11 @@ jobs:
           printf '%s  %s\n' "$TRIVY_SHA256" "$archive" | sha256sum --check --strict
           tar -xzf "$archive" -C "$RUNNER_TEMP/osv" trivy
 
+      - name: Create a builder with Docker archive export support
+        if: matrix.target == 'images'
+        run: docker buildx create --name postal-osv-export --driver docker-container
+
       - name: Scan repository
+        env:
+          POSTAL_OSV_EXPORT_BUILDER: ${{ matrix.target == 'images' && 'postal-osv-export' || '' }}
         run: bash scripts/security-scan.sh ${{ matrix.target }}
