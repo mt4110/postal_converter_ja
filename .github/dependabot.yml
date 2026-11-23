@@ -9,18 +9,9 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
-  # Maintain Rust dependencies (Crawler)
+  # Maintain Rust dependencies using the shared workspace lockfile.
   - package-ecosystem: "cargo"
-    directory: "/worker/crawler"
-    schedule:
-      interval: "weekly"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-
-  # Maintain Rust dependencies (API)
-  - package-ecosystem: "cargo"
-    directory: "/worker/api"
+    directory: "/worker"
     schedule:
       interval: "weekly"
     ignore:
