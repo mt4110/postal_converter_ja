@@ -17,8 +17,9 @@
           inherit system overlays;
         };
         nodejsPkgs = nodejs-nixpkgs.legacyPackages.${system};
+        nodeVersion = pkgs.lib.removeSuffix "\n" (builtins.readFile ./frontend/.node-version);
         nodejs =
-          assert nodejsPkgs.lib.versionAtLeast nodejsPkgs.nodejs_24.version "24.22.1";
+          assert nodejsPkgs.nodejs_24.version == nodeVersion;
           assert nodejsPkgs.lib.versionAtLeast nodejsPkgs.brotli.version "1.2.1";
           nodejsPkgs.nodejs_24;
         # Rust toolchain

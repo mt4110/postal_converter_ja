@@ -4,6 +4,7 @@ use crate::utils::thread::determine_thread_num;
 use common::models::PostalCode;
 use deadpool_postgres::{Pool as PgPool, PoolError};
 use futures::future::join_all;
+use time::PrimitiveDateTime;
 use tokio::time::{Duration, sleep};
 use tokio_postgres::Error as PgError;
 
@@ -22,7 +23,7 @@ fn to_sql_param<T: tokio_postgres::types::ToSql + Sync>(
 async fn bulk_insert(
     pool: &PgPool,
     data: &[PostalCode],
-    batch_timestamp: chrono::NaiveDateTime,
+    batch_timestamp: PrimitiveDateTime,
 ) -> Result<(), PgError> {
     let chunk_size = 200;
     let columns: &[&str] = &[
@@ -59,7 +60,7 @@ async fn bulk_insert(
             })
             .collect();
 
-        let batch_timestamp_utc = batch_timestamp.and_utc();
+        let batch_timestamp_utc = batch_timestamp.assume_utc();
         let (query, mut params) = build_pg_bulk_insert_query("postal_codes", columns, &insert_data);
         params.push(to_sql_param(&batch_timestamp_utc));
 
@@ -98,7 +99,7 @@ async fn bulk_insert(
 pub async fn bulk_insert_async(
     pool: &PgPool,
     data: &[PostalCode],
-    batch_timestamp: chrono::NaiveDateTime,
+    batch_timestamp: PrimitiveDateTime,
 ) -> Result<(), PgError> {
     let thread_num = determine_thread_num();
     let chunk_size = data.len() / thread_num;
@@ -143,9 +144,9 @@ pub async fn bulk_insert_async(
 
 pub async fn delete_old_records_postgres(
     pool: &PgPool,
-    batch_timestamp: chrono::NaiveDateTime,
+    batch_timestamp: PrimitiveDateTime,
 ) -> Result<u64, PgError> {
-    let batch_timestamp_utc = batch_timestamp.and_utc();
+    let batch_timestamp_utc = batch_timestamp.assume_utc();
     println!("Deleting records older than {}", batch_timestamp_utc);
     let client = pool.get().await.expect("Failed to get client");
     let deleted_rows = client
