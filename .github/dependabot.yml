@@ -14,6 +14,10 @@ updates:
     directory: "/worker"
     schedule:
       interval: "weekly"
+    groups:
+      cargo-minor:
+        applies-to: version-updates
+        update-types: [minor]
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
@@ -23,6 +27,10 @@ updates:
     directory: "/frontend"
     schedule:
       interval: "weekly"
+    groups:
+      npm-minor:
+        applies-to: version-updates
+        update-types: [minor]
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
@@ -32,6 +40,10 @@ updates:
     directory: "/launcher"
     schedule:
       interval: "weekly"
+    groups:
+      go-minor:
+        applies-to: version-updates
+        update-types: [minor]
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
